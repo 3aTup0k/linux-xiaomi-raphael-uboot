@@ -31,9 +31,9 @@ mount --bind /sys rootdir/sys
 
 # 配置网络和主机名
 echo "nameserver 1.1.1.1" | tee rootdir/etc/resolv.conf
-echo "xiaomi-raphael" | tee rootdir/etc/hostname
+echo "raphael" | tee rootdir/etc/hostname
 echo "127.0.0.1 localhost
-127.0.1.1 xiaomi-raphael" | tee rootdir/etc/hosts
+127.0.1.1 raphael" | tee rootdir/etc/hosts
 
 # Chroot 安装步骤
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\$PATH
@@ -60,11 +60,14 @@ chroot rootdir apt install -y rmtfs protection-domain-mapper tqftpserv
 # 安装语言包和设置默认语言为简体中文
 chroot rootdir apt install -y locales locales-all tzdata
 	
-chroot rootdir sed -i 's/^# *zh_CN.UTF-8 UTF-8/zh_CN.UTF-8 UTF-8/' /etc/locale.gen
-chroot rootdir locale-gen zh_CN.UTF-8
-chroot rootdir update-locale LANG=zh_CN.UTF-8 LANGUAGE=zh_CN:zh
-echo "Asia/Shanghai" | tee rootdir/etc/timezone
-chroot rootdir ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+# setting language (ENGLISH USA)
+chroot rootdir sed -i 's/^# *en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+chroot rootdir locale-gen en_US.UTF-8
+chroot rootdir update-locale LANG=en_US.UTF-8 LANGUAGE=en_US:en
+
+# setting time
+echo "Europe/Moscow" | tee rootdir/etc/timezone
+chroot rootdir ln -sf /usr/share/zoneinfo/Europe/Moscow /etc/localtime
 chroot rootdir dpkg-reconfigure -f noninteractive tzdata
 
 # 修改服务配置
@@ -145,6 +148,7 @@ echo "PARTLABEL=userdata / ext4 errors=remount-ro,x-systemd.growfs 0 1
 PARTLABEL=cache /boot vfat umask=0077 0 1" | tee rootdir/etc/fstab
 
 # 创建默认用户
+# setting passwords
 echo "root:1234" | chroot rootdir chpasswd
 chroot rootdir useradd -m -G sudo -s /bin/bash user
 echo "user:1234" | chroot rootdir chpasswd
