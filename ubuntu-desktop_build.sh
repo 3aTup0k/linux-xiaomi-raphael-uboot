@@ -31,9 +31,9 @@ mount --bind /sys rootdir/sys
 
 # 配置网络和主机名
 echo "nameserver 1.1.1.1" | tee rootdir/etc/resolv.conf
-echo "xiaomi-raphael" | tee rootdir/etc/hostname
+echo "raphael" | tee rootdir/etc/hostname
 echo "127.0.0.1 localhost
-127.0.1.1 xiaomi-raphael" | tee rootdir/etc/hosts
+127.0.1.1 raphael" | tee rootdir/etc/hosts
 
 # Chroot 安装步骤
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\$PATH
@@ -88,11 +88,14 @@ chroot rootdir apt install -y \
 	ibus-table-cangjie5 \
 	ibus-table-quick-classic
 	
-chroot rootdir sed -i 's/^# *zh_CN.UTF-8 UTF-8/zh_CN.UTF-8 UTF-8/' /etc/locale.gen
-chroot rootdir locale-gen zh_CN.UTF-8
-chroot rootdir update-locale LANG=zh_CN.UTF-8 LANGUAGE=zh_CN:zh
-echo "Asia/Shanghai" | tee rootdir/etc/timezone
-chroot rootdir ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+# Английский язык (США)
+chroot rootdir sed -i 's/^# *en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+chroot rootdir locale-gen en_US.UTF-8
+chroot rootdir update-locale LANG=en_US.UTF-8 LANGUAGE=en_US:en
+
+# Московское время
+echo "Europe/Moscow" | tee rootdir/etc/timezone
+chroot rootdir ln -sf /usr/share/zoneinfo/Europe/Moscow /etc/localtime
 chroot rootdir dpkg-reconfigure -f noninteractive tzdata
 
 # 修改服务配置
