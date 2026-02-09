@@ -31,9 +31,9 @@ mount --bind /sys rootdir/sys
 
 # 配置网络和主机名
 echo "nameserver 1.1.1.1" | tee rootdir/etc/resolv.conf
-echo "xiaomi-raphael" | tee rootdir/etc/hostname
+echo "raphael" | tee rootdir/etc/hostname
 echo "127.0.0.1 localhost
-127.0.1.1 xiaomi-raphael" | tee rootdir/etc/hosts
+127.0.1.1 raphael" | tee rootdir/etc/hosts
 
 # Chroot 安装步骤
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\$PATH
@@ -55,18 +55,20 @@ chroot rootdir apt upgrade -y
 chroot rootdir apt install -y bash-completion sudo apt-utils ssh openssh-server nano network-manager systemd-boot initramfs-tools chrony curl wget locales tzdata language-pack-zh-hans dnsmasq iptables iproute2
 
 # 设置时区和语言
-echo "Asia/Shanghai" > rootdir/etc/timezone
-chroot rootdir ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
-chroot rootdir locale-gen en_US.UTF-8 zh_CN.UTF-8
-chroot rootdir update-locale LANG=en_US.UTF-8
+echo "Europe/Moscow" > rootdir/etc/timezone
+chroot rootdir ln -sf /usr/share/zoneinfo/Europe/Moscow /etc/localtime
+chroot rootdir locale-gen en_US.UTF-8  # Только английская локаль
+chroot rootdir locale-gen ru_RU.UTF-8  # Русская локаль (опционально)
+chroot rootdir update-locale LANG=en_US.UTF-8 LANGUAGE=en_US:en
 
-# 配置动态语言切换（SSH使用中文，TTY使用英文）
+# Если нужен только английский везде, можно удалить скрипт переключения
+# или упростить его:
 cat > rootdir/etc/profile.d/99-locale-fix.sh << 'EOF'
-# 如果是SSH连接，则使用中文
-if [ -n "$SSH_CONNECTION" ] || [ -n "$SSH_TTY" ]; then
-    export LANG=zh_CN.UTF-8
-    export LC_ALL=zh_CN.UTF-8
-fi
+#!/bin/bash
+# Всегда английский язык
+export LANG=en_US.UTF-8
+export LANGUAGE=en_US:en
+export LC_ALL=en_US.UTF-8
 EOF
 chmod +x rootdir/etc/profile.d/99-locale-fix.sh
 
