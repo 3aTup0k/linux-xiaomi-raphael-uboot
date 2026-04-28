@@ -129,3 +129,4 @@ fastboot reboot
 - [@Pc1598](https://github.com/Pc1598) — поддержка ядра sm8150-mainline-raphael
 - [Aospa-raphael-unofficial/linux](https://github.com/Aospa-raphael-unofficial/linux) — проект ядра
 - [sm8150-mainline/linux](https://gitlab.com/sm8150-mainline/linux) — проект ядра
+- [GengWei1997/linux-xiaomi-raphael-uboot](https://github.com/GengWei1997/linux-xiaomi-raphael-uboot) - оригинальный проект на базе которого сделан этот форк
