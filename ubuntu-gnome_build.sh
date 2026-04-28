@@ -1,98 +1,110 @@
 #!/bin/sh
-set -e  # 遇到错误立即退出
+set -e  # Exit immediately on error
 
-# 检查是否以 root 权限运行
-if [ "$(id -u)" -ne 0 ]
-then
+# Check if running as root
+if [ "$(id -u)" -ne 0 ]; then
   echo "rootfs can only be built as root"
-  exit
+  exit 1
 fi
 
-# 设置 Ubuntu 版本
+# Script arguments:
+# $1 - kernel version (e.g. 6.18)
+# $2 - language pack scope (full | minimum)
+# $3 - timezone (e.g. Europe/Moscow)
+# $4 - hostname (e.g. raphael)
+
+KERNEL_VERSION="$1"
+LANGUAGE_PACK="${2:-full}"
+TIMEZONE="${3:-Europe/Moscow}"
+HOSTNAME="${4:-raphael}"
+
 UBUNTU_VERSION="noble"
 
-# 创建根文件系统镜像
+# Create root filesystem image
 truncate -s 6G rootfs.img
 mkfs.ext4 rootfs.img
 mkdir rootdir
 mount -o loop rootfs.img rootdir
 
-# debootstrap生成镜像
-debootstrap --arch=arm64 $UBUNTU_VERSION rootdir https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/
+# Bootstrap Ubuntu base system (arm64)
+debootstrap --arch=arm64 "$UBUNTU_VERSION" rootdir https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/
 
-# 挂载boot
+# Mount boot image
 mount -o loop xiaomi-k20pro-boot.img rootdir/boot
 
-# 绑定系统目录
+# Bind system directories
 mount --bind /dev rootdir/dev
 mount --bind /dev/pts rootdir/dev/pts
 mount --bind /proc rootdir/proc
 mount --bind /sys rootdir/sys
 
-# 配置网络和主机名
+# Configure network and hostname
 echo "nameserver 1.1.1.1" | tee rootdir/etc/resolv.conf
-echo "xiaomi-raphael" | tee rootdir/etc/hostname
+echo "$HOSTNAME" | tee rootdir/etc/hostname
 echo "127.0.0.1 localhost
-127.0.1.1 xiaomi-raphael" | tee rootdir/etc/hosts
+127.0.1.1 $HOSTNAME" | tee rootdir/etc/hosts
 
-# Chroot 安装步骤
+# Set up chroot environment
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\$PATH
 export DEBIAN_FRONTEND=noninteractive
 
-# 配置清华镜像源
-cat > rootdir/etc/apt/sources.list << 'EOF'
+# Configure Tsinghua Ubuntu‑ports mirror
+cat > rootdir/etc/apt/sources.list << EOF
 deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ noble main restricted universe multiverse
 deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ noble-updates main restricted universe multiverse
 deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ noble-backports main restricted universe multiverse
 deb http://ports.ubuntu.com/ubuntu-ports/ noble-security main restricted universe multiverse
 EOF
 
-# 更新系统
+# Update and upgrade base system
 chroot rootdir apt update
 chroot rootdir apt upgrade -y
 
-# 安装基础软件包和 Ubuntu Desktop
-chroot rootdir apt install -y bash-completion sudo apt-utils ssh openssh-server nano systemd-boot initramfs-tools chrony curl wget dnsmasq iptables iproute2 ubuntu-desktop
+# Install base packages and Ubuntu Desktop (GNOME)
+chroot rootdir apt install -y bash-completion sudo apt-utils ssh openssh-server nano \
+  systemd-boot initramfs-tools chrony curl wget dnsmasq iptables iproute2 ubuntu-desktop
 
-# 安装设备特定软件包
+# Install device-specific packages
 chroot rootdir apt install -y rmtfs protection-domain-mapper tqftpserv
 
-# 安装语言包和设置默认语言为简体中文
-chroot rootdir apt install -y locales locales-all tzdata
-chroot rootdir apt install -y \
-    fonts-arphic-uming \
-    fonts-arphic-ukai \
+# Language and locale setup
+if [ "$LANGUAGE_PACK" = "full" ]; then
+  # Install all available locales and extensive language support
+  chroot rootdir apt install -y locales-all
+  chroot rootdir locale-gen
+
+  # Install all GNOME language packs (translations) and CJK fonts
+  chroot rootdir apt install -y \
+    language-pack-gnome-\* \
+    language-pack-\* \
     fonts-noto-cjk-extra \
-    language-pack-gnome-zh-hans \
-    language-pack-gnome-zh-hans-base \
-    language-pack-zh-hans \
-    language-pack-zh-hans-base \
-    gnome-user-docs-zh-hans \
-    libopencc-data \
-    libmarisa0 \
-    libopencc1.1 \
-    libpinyin-data \
-    libpinyin15 \
-    ibus-libpinyin \
-    ibus-table-wubi \
-    libreoffice-help-common \
-    libreoffice-l10n-zh-cn \
-    libreoffice-help-zh-cn \
-    thunderbird-locale-zh-cn \
-    thunderbird-locale-zh-hans
-	
-chroot rootdir sed -i 's/^# *zh_CN.UTF-8 UTF-8/zh_CN.UTF-8 UTF-8/' /etc/locale.gen
-chroot rootdir locale-gen zh_CN.UTF-8
-chroot rootdir update-locale LANG=zh_CN.UTF-8 LANGUAGE=zh_CN:zh
-echo "Asia/Shanghai" | tee rootdir/etc/timezone
-chroot rootdir ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+    fonts-arphic-uming \
+    fonts-arphic-ukai
+else
+  # Minimum set: US English and Russian locale data + fonts
+  chroot rootdir apt install -y locales
+  echo "en_US.UTF-8 UTF-8" > rootdir/etc/locale.gen
+  echo "ru_RU.UTF-8 UTF-8" >> rootdir/etc/locale.gen
+  chroot rootdir locale-gen
+
+  # Basic language packs for en and ru
+  chroot rootdir apt install -y language-pack-en language-pack-ru \
+    language-pack-gnome-en language-pack-gnome-ru
+fi
+
+# Set default system locale to US English (neutral)
+chroot rootdir update-locale LANG=en_US.UTF-8 LANGUAGE=en_US:en
+
+# Timezone configuration (default Moscow)
+echo "$TIMEZONE" | tee rootdir/etc/timezone
+chroot rootdir ln -sf "/usr/share/zoneinfo/$TIMEZONE" /etc/localtime
 chroot rootdir dpkg-reconfigure -f noninteractive tzdata
 
-# 修改服务配置
+# Fix pd-mapper service
 sed -i '/ConditionKernelVersion/d' rootdir/lib/systemd/system/pd-mapper.service
 
-# 复制并安装内核包（从预下载的目录）
-cp xiaomi-raphael-debs_$1/*-xiaomi-raphael.deb rootdir/tmp/
+# Install kernel packages (pre-downloaded)
+cp "xiaomi-raphael-debs_${KERNEL_VERSION}/"*"-xiaomi-raphael.deb" rootdir/tmp/
 chroot rootdir dpkg -i /tmp/linux-image-xiaomi-raphael.deb
 chroot rootdir dpkg -i /tmp/linux-headers-xiaomi-raphael.deb
 chroot rootdir dpkg -i /tmp/firmware-xiaomi-raphael.deb
@@ -100,49 +112,51 @@ chroot rootdir dpkg -i /tmp/alsa-xiaomi-raphael.deb
 rm rootdir/tmp/*-xiaomi-raphael.deb
 chroot rootdir update-initramfs -c -k all
 
-# 配置 NCM
-cat > rootdir/etc/dnsmasq.d/usb-ncm.conf << 'EOF'
+# Configure CDC NCM (USB networking)
+cat > rootdir/etc/dnsmasq.d/usb-ncm.conf << 'NCMEOF'
 interface=usb0
 bind-dynamic
 port=0
 dhcp-authoritative
 dhcp-range=172.16.42.2,172.16.42.254,255.255.255.0,1h
 dhcp-option=3,172.16.42.1
-EOF
+NCMEOF
 echo "net.ipv4.ip_forward=1" | tee rootdir/etc/sysctl.d/99-usb-ncm.conf
 chroot rootdir systemctl enable dnsmasq
-cat > rootdir/usr/local/sbin/setup-usb-ncm.sh << 'EOF'
+
+cat > rootdir/usr/local/sbin/setup-usb-ncm.sh << EOF
 #!/bin/sh
 set -e
 modprobe libcomposite
 mountpoint -q /sys/kernel/config || mount -t configfs none /sys/kernel/config
 G=/sys/kernel/config/usb_gadget/g1
-mkdir -p $G
-echo 0x1d6b > $G/idVendor
-echo 0x0104 > $G/idProduct
-echo 0x0200 > $G/bcdUSB
-mkdir -p $G/strings/0x409
-echo xiaomi-raphael > $G/strings/0x409/manufacturer
-echo NCM > $G/strings/0x409/product
-echo $(cat /etc/machine-id) > $G/strings/0x409/serialnumber
-mkdir -p $G/configs/c.1
-mkdir -p $G/configs/c.1/strings/0x409
-echo NCM > $G/configs/c.1/strings/0x409/configuration
-mkdir -p $G/functions/ncm.usb0
-ln -sf $G/functions/ncm.usb0 $G/configs/c.1/
-UDC=$(ls /sys/class/udc | head -n 1)
-echo $UDC > $G/UDC
+mkdir -p \$G
+echo 0x1d6b > \$G/idVendor
+echo 0x0104 > \$G/idProduct
+echo 0x0200 > \$G/bcdUSB
+mkdir -p \$G/strings/0x409
+echo $HOSTNAME > \$G/strings/0x409/manufacturer
+echo NCM > \$G/strings/0x409/product
+echo \$(cat /etc/machine-id) > \$G/strings/0x409/serialnumber
+mkdir -p \$G/configs/c.1
+mkdir -p \$G/configs/c.1/strings/0x409
+echo NCM > \$G/configs/c.1/strings/0x409/configuration
+mkdir -p \$G/functions/ncm.usb0
+ln -sf \$G/functions/ncm.usb0 \$G/configs/c.1/
+UDC=\$(ls /sys/class/udc | head -n 1)
+echo \$UDC > \$G/UDC
 ip link set usb0 up
 ip addr add 172.16.42.1/24 dev usb0 || true
-OUT=$(ip route get 1.1.1.1 | awk '{print $5; exit}')
+OUT=\$(ip route get 1.1.1.1 | awk '{print \$5; exit}')
 sysctl -w net.ipv4.ip_forward=1
-iptables -t nat -C POSTROUTING -o $OUT -j MASQUERADE || iptables -t nat -A POSTROUTING -o $OUT -j MASQUERADE
-iptables -C FORWARD -i $OUT -o usb0 -m state --state RELATED,ESTABLISHED -j ACCEPT || iptables -A FORWARD -i $OUT -o usb0 -m state --state RELATED,ESTABLISHED -j ACCEPT
-iptables -C FORWARD -i usb0 -o $OUT -j ACCEPT || iptables -A FORWARD -i usb0 -o $OUT -j ACCEPT
+iptables -t nat -C POSTROUTING -o \$OUT -j MASQUERADE || iptables -t nat -A POSTROUTING -o \$OUT -j MASQUERADE
+iptables -C FORWARD -i \$OUT -o usb0 -m state --state RELATED,ESTABLISHED -j ACCEPT || iptables -A FORWARD -i \$OUT -o usb0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+iptables -C FORWARD -i usb0 -o \$OUT -j ACCEPT || iptables -A FORWARD -i usb0 -o \$OUT -j ACCEPT
 systemctl restart dnsmasq || true
 EOF
 chmod +x rootdir/usr/local/sbin/setup-usb-ncm.sh
-cat > rootdir/etc/systemd/system/usb-ncm.service << 'EOF'
+
+cat > rootdir/etc/systemd/system/usb-ncm.service << 'NCMEOF'
 [Unit]
 Description=USB CDC-NCM gadget setup
 After=network.target
@@ -155,36 +169,36 @@ RemainAfterExit=yes
 
 [Install]
 WantedBy=multi-user.target
-EOF
+NCMEOF
 chroot rootdir systemctl enable usb-ncm
 
-# 配置 fstab
+# Configure fstab
 echo "PARTLABEL=userdata / ext4 errors=remount-ro,x-systemd.growfs 0 1
 PARTLABEL=cache /boot vfat umask=0077 0 1" | tee rootdir/etc/fstab
 
-# 创建默认用户
+# Create default users
 echo "root:1234" | chroot rootdir chpasswd
 chroot rootdir useradd -m -G sudo -s /bin/bash user
 echo "user:1234" | chroot rootdir chpasswd
 
-# 允许SSH root登录
+# Allow SSH root login
 echo "PermitRootLogin yes" | tee -a rootdir/etc/ssh/sshd_config
 echo "PasswordAuthentication yes" | tee -a rootdir/etc/ssh/sshd_config
 
-# 彻底禁用系统休眠
+# Disable system suspend/hibernate
 chroot rootdir systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
 
-# 清理 apt 缓存
+# Clean apt cache
 chroot rootdir apt clean
 
-# 重命名 boot 文件
+# Rename boot files
 mv rootdir/boot/initrd.img-* rootdir/boot/initramfs
 mv rootdir/boot/vmlinuz-* rootdir/boot/linux.efi
 
-# 删除 wifi 证书
+# Remove Wi-Fi regulatory certificates
 rm -f rootdir/lib/firmware/reg*
 
-# 卸载所有挂载点
+# Unmount everything in reverse order
 umount rootdir/sys
 umount rootdir/proc
 umount rootdir/dev/pts
@@ -194,10 +208,10 @@ umount rootdir
 
 rm -d rootdir
 
-# 设置文件系统 UUID
+# Set filesystem UUID
 tune2fs -U ee8d3593-59b1-480e-a3b6-4fefb17ee7d8 rootfs.img
 
 echo 'cmdline for legacy boot: "root=PARTLABEL=userdata"'
 
-# 压缩 rootfs 镜像
+# Compress rootfs image
 7z a rootfs.7z rootfs.img
