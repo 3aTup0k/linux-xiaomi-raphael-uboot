@@ -1,0 +1,297 @@
+# Unified System Image Build Workflow - Runs on Ubuntu 24.04 ARM
+name: build-rootfs
+
+# Manual trigger with all parameters configurable
+on:
+  workflow_dispatch:
+    inputs:
+      system_type:
+        description: 'System type'
+        required: true
+        default: ''
+        type: choice
+        options:
+          - ''
+          - debian-gnome
+          - debian-phosh
+          - debian-xfce
+          - debian-kde-mobile
+          - debian-server
+          - ubuntu-gnome
+          - ubuntu-phosh
+          - ubuntu-xfce
+          - ubuntu-kde-mobile
+          - ubuntu-server
+      kernel_version:
+        description: 'Kernel version (download from Release)'
+        required: true
+        default: '6.18'
+      desktop_environment:
+        description: 'Desktop environment (only for Phosh versions, ignored for others)'
+        required: false
+        default: ''
+        type: choice
+        options:
+          - ''
+          - phosh-core
+          - phosh-full
+          - phosh-phone
+      language_pack:
+        description: 'Language pack scope'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - minimum
+      timezone:
+        description: 'Timezone for the image (default Moscow)'
+        required: false
+        default: 'Europe/Moscow'
+
+jobs:
+  build-system-image:
+    runs-on: ubuntu-24.04-arm
+
+    permissions:
+      contents: write
+      packages: write
+
+    env:
+      BUILD_TIMESTAMP: ${{ format('{0}', github.run_id) }}-${{ github.run_number }}
+      SYSTEM_TYPE: ${{ inputs.system_type }}
+      KERNEL_VERSION: ${{ inputs.kernel_version }}
+      DESKTOP_ENV: ${{ inputs.desktop_environment || 'phosh-full' }}
+      LANGUAGE_PACK: ${{ inputs.language_pack }}
+      TIMEZONE: ${{ inputs.timezone }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt update
+          sudo apt install -y debootstrap
+
+      - name: Validate build parameters
+        run: |
+          echo "Build configuration:"
+          echo "System type: ${{ env.SYSTEM_TYPE }}"
+          echo "Kernel version: ${{ env.KERNEL_VERSION }}"
+          echo "Desktop environment: ${{ env.DESKTOP_ENV }} (used only for Phosh)"
+          echo "Language pack: ${{ env.LANGUAGE_PACK }}"
+          echo "Timezone: ${{ env.TIMEZONE }}"
+
+          # Phosh variants must specify a desktop environment
+          if [[ "${{ env.SYSTEM_TYPE }}" == *"phosh"* && -z "${{ inputs.desktop_environment }}" ]]; then
+            echo "Error: Phosh builds require the desktop_environment parameter"
+            exit 1
+          fi
+
+      - name: Download kernel artifacts
+        run: |
+          # Download kernel packages from the corresponding Release
+          mkdir -p xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}
+
+          echo "Downloading kernel packages (version: ${{ env.KERNEL_VERSION }})..."
+
+          # Common packages
+          curl -L -o xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}/linux-image-xiaomi-raphael.deb \
+            "https://github.com/${{ github.repository }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/linux-image-xiaomi-raphael.deb" || echo "Failed to download linux-image-xiaomi-raphael.deb"
+
+          curl -L -o xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}/linux-headers-xiaomi-raphael.deb \
+            "https://github.com/${{ github.repository }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/linux-headers-xiaomi-raphael.deb" || echo "Failed to download linux-headers-xiaomi-raphael.deb"
+
+          curl -L -o xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}/firmware-xiaomi-raphael.deb \
+            "https://github.com/${{ github.repository }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/firmware-xiaomi-raphael.deb" || echo "Failed to download firmware-xiaomi-raphael.deb"
+
+          # Boot image
+          curl -L -o xiaomi-k20pro-boot.img \
+            "https://github.com/GengWei1997/kernel-deb/releases/download/v1.0.0/xiaomi-k20pro-boot.img" \
+            || echo "Failed to download xiaomi-k20pro-boot.img"
+
+          # ALSA package for all graphical environments (GNOME, Phosh, XFCE, KDE Mobile)
+          case "${{ env.SYSTEM_TYPE }}" in
+            *phosh*|*gnome*|*xfce*|*kde-mobile*)
+              curl -L -o xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}/alsa-xiaomi-raphael.deb \
+                "https://github.com/${{ github.repository }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/alsa-xiaomi-raphael.deb" || echo "Failed to download alsa-xiaomi-raphael.deb"
+              ;;
+          esac
+
+          echo "Downloaded kernel packages:"
+          ls -la xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}/ || echo "Directory is empty"
+
+          # Essential package check
+          if [ ! -f "xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}/linux-image-xiaomi-raphael.deb" ]; then
+            echo "Error: Required kernel package not found"
+            exit 1
+          fi
+
+      - name: Build system image
+        run: |
+          echo "Building ${{ env.SYSTEM_TYPE }} image..."
+
+          case "${{ env.SYSTEM_TYPE }}" in
+            "debian-gnome")
+              sudo sh debian-gnome_build.sh "${{ env.KERNEL_VERSION }}"
+              ;;
+            "debian-phosh")
+              sudo sh debian-phosh_build.sh "${{ env.DESKTOP_ENV }}" "${{ env.KERNEL_VERSION }}"
+              ;;
+            "debian-xfce")
+              sudo sh debian-xfce_build.sh "${{ env.KERNEL_VERSION }}"
+              ;;
+            "debian-kde-mobile")
+              sudo sh debian-kde-mobile_build.sh "${{ env.KERNEL_VERSION }}"
+              ;;
+            "debian-server")
+              sudo sh debian-server_build.sh "${{ env.KERNEL_VERSION }}"
+              ;;
+            "ubuntu-gnome")
+              sudo sh ubuntu-gnome_build.sh "${{ env.KERNEL_VERSION }}"
+              ;;
+            "ubuntu-phosh")
+              sudo sh ubuntu-phosh_build.sh "${{ env.DESKTOP_ENV }}" "${{ env.KERNEL_VERSION }}"
+              ;;
+            "ubuntu-xfce")
+              sudo sh ubuntu-xfce_build.sh "${{ env.KERNEL_VERSION }}"
+              ;;
+            "ubuntu-kde-mobile")
+              sudo sh ubuntu-kde-mobile_build.sh "${{ env.KERNEL_VERSION }}"
+              ;;
+            "ubuntu-server")
+              sudo sh ubuntu-server_build.sh "${{ env.KERNEL_VERSION }}"
+              ;;
+            *)
+              echo "Error: Unknown system type: ${{ env.SYSTEM_TYPE }}"
+              exit 1
+              ;;
+          esac
+
+          echo "Image build completed!"
+
+      - name: Get build info
+        id: build-info
+        run: |
+          # Timestamp in chosen timezone (default Moscow)
+          TIMESTAMP=$(TZ='${{ env.TIMEZONE }}' date +'%Y-%m-%d %H:%M:%S')
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+
+          # Determine OS name and version
+          case "${{ env.SYSTEM_TYPE }}" in
+            debian-*)
+              OS_NAME="Debian"
+              OS_VERSION="trixie"
+              ;;
+            ubuntu-*)
+              OS_NAME="Ubuntu"
+              OS_VERSION="noble"
+              ;;
+          esac
+          echo "os_name=$OS_NAME" >> $GITHUB_OUTPUT
+          echo "os_version=$OS_VERSION" >> $GITHUB_OUTPUT
+
+          # System category
+          if [[ "${{ env.SYSTEM_TYPE }}" =~ (phosh|gnome|xfce|kde-mobile) ]]; then
+            SYSTEM_CATEGORY="Desktop"
+          else
+            SYSTEM_CATEGORY="Server"
+          fi
+          echo "system_category=$SYSTEM_CATEGORY" >> $GITHUB_OUTPUT
+
+      - name: Generate Release info
+        id: release-info
+        run: |
+          # Build tag: system-type-vkernel[-desktop_env for Phosh]
+          TAG="${{ env.SYSTEM_TYPE }}-v${{ env.KERNEL_VERSION }}"
+          if [[ "${{ env.SYSTEM_TYPE }}" == *"phosh"* ]]; then
+            TAG="${TAG}-${{ env.DESKTOP_ENV }}"
+          fi
+          echo "tag_name=$TAG" >> $GITHUB_OUTPUT
+
+          # Build human‑readable release name
+          OS_NAME="${{ steps.build-info.outputs.os_name }}"
+          VER="${{ env.KERNEL_VERSION }}"
+          CAT="${{ steps.build-info.outputs.system_category }}"
+
+          # Map desktop type to a display name
+          DESKTOP_DISPLAY=""
+          case "${{ env.SYSTEM_TYPE }}" in
+            *gnome*)   DESKTOP_DISPLAY="GNOME" ;;
+            *phosh*)   DESKTOP_DISPLAY="Phosh (${{ env.DESKTOP_ENV }})" ;;
+            *xfce*)    DESKTOP_DISPLAY="XFCE" ;;
+            *kde-mobile*) DESKTOP_DISPLAY="KDE Mobile" ;;
+          esac
+
+          RELEASE_NAME="${OS_NAME} ${CAT} Image v${VER}"
+          if [ -n "$DESKTOP_DISPLAY" ]; then
+            RELEASE_NAME="${RELEASE_NAME} (${DESKTOP_DISPLAY})"
+          fi
+          echo "release_name=$RELEASE_NAME" >> $GITHUB_OUTPUT
+
+      - name: Generate Release description
+        id: release-desc
+        run: |
+          DESC="Xiaomi Raphael ${OS_NAME} ${CAT} image\n"
+          DESC="${DESC}- OS: ${OS_NAME} ${OS_VERSION}\n"
+          DESC="${DESC}- Kernel: v${{ env.KERNEL_VERSION }}\n"
+
+          if [ -n "$DESKTOP_DISPLAY" ]; then
+            DESC="${DESC}- Desktop: ${DESKTOP_DISPLAY}\n"
+          fi
+
+          DESC="${DESC}- Language pack: ${{ env.LANGUAGE_PACK }}\n"
+          DESC="${DESC}- Timezone: ${{ env.TIMEZONE }}\n"
+          DESC="${DESC}- Build time: ${{ steps.build-info.outputs.timestamp }}\n"
+          DESC="${DESC}- Build ID: ${{ env.BUILD_TIMESTAMP }}\n\n"
+
+          if [[ "${{ env.SYSTEM_TYPE }}" == *server* ]]; then
+            DESC="${DESC}Notes:\n"
+            DESC="${DESC}- Headless server edition\n"
+            DESC="${DESC}- Basic network management tools included\n"
+            DESC="${DESC}- SSH server preinstalled\n"
+            DESC="${DESC}- Full Chinese locale support (other languages depend on language pack choice)\n"
+            DESC="${DESC}- Necessary device drivers and firmware included\n"
+          else
+            DESC="${DESC}Notes:\n"
+            DESC="${DESC}- Desktop edition\n"
+            DESC="${DESC}- Desktop environment: ${DESKTOP_DISPLAY}\n"
+            DESC="${DESC}- SSH server preinstalled\n"
+            DESC="${DESC}- Full Chinese locale support (other languages depend on language pack choice)\n"
+            DESC="${DESC}- Necessary device drivers and firmware included\n"
+          fi
+
+          echo "description<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$DESC" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Release and upload image
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.release-info.outputs.tag_name }}
+          name: ${{ steps.release-info.outputs.release_name }}
+          body: ${{ steps.release-desc.outputs.description }}
+          draft: false
+          prerelease: false
+          files: |
+            rootfs.7z
+            xiaomi-k20pro-boot.img
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload image as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.SYSTEM_TYPE }}-image-v${{ env.KERNEL_VERSION }}
+          path: |
+            rootfs.7z
+            xiaomi-k20pro-boot.img
+
+      - name: Clean temporary files
+        if: always()
+        run: |
+          echo "Cleaning temporary files..."
+          sudo rm -f rootfs.img rootfs.7z xiaomi-k20pro-boot.img 2>/dev/null || true
+          sudo rm -rf rootdir 2>/dev/null || true
+          rm -rf xiaomi-raphael-debs_* 2>/dev/null || true
