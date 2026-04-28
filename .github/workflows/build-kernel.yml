@@ -1,98 +1,98 @@
-# 内核编译工作流 - 在 Ubuntu 24.04 ARM 上运行
-name: 内核编译
+# Kernel Compilation Workflow - Runs on Ubuntu 24.04 ARM
+name: Kernel Compilation
 
-# 手动触发，可指定内核版本
+# Manual trigger with configurable kernel version
 on:
   workflow_dispatch:
     inputs:
       kernel_version:
-        description: '内核版本号 (如 6.18)'
+        description: 'Kernel version (e.g. 6.18)'
         required: true
         default: '6.18'
 
-# 工作流配置
+# Workflow configuration
 jobs:
   build-kernel:
-    # 在 Ubuntu 24.04 ARM 上运行
+    # Run on Ubuntu 24.04 ARM runner
     runs-on: ubuntu-24.04-arm
-    
-    # 设置权限，允许创建 Release
+
+    # Permissions needed to create a Release
     permissions:
-      contents: write   # 允许创建 Release 和上传文件
-      packages: write   # 允许上传包（如果需要）
-    
-    # 定义环境变量
+      contents: write   # Allow creating releases and uploading files
+      packages: write   # Allow uploading packages (if needed)
+
+    # Environment variables
     env:
       BUILD_TIMESTAMP: ${{ format('{0}', github.run_id) }}-${{ github.run_number }}
-    
+
     steps:
-      # 检出代码
-      - name: 检出代码
+      # Checkout the repository
+      - name: Checkout code
         uses: actions/checkout@v4
-      
-      # 安装编译依赖
-      - name: 安装编译依赖
+
+      # Install build dependencies
+      - name: Install build dependencies
         run: |
           sudo apt update
           sudo apt install -y build-essential gcc-aarch64-linux-gnu bc flex bison \
           7zip kmod bash cpio binutils tar git wget dpkg libssl-dev \
           libelf-dev python3 rsync debhelper-compat libdw-dev
-          
+
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
           sudo ./llvm.sh 21
-      
-      # 设置 ccache 缓存
-      - name: 设置 ccache
+
+      # Set up ccache cache
+      - name: Set up ccache
         uses: actions/cache@v3
         with:
           path: ~/.ccache
           key: ${{ runner.os }}-ccache-kernel-${{ inputs.kernel_version }}
           restore-keys: |
             ${{ runner.os }}-ccache-kernel-
-      
-      # 安装并配置 ccache
-      - name: 安装配置 ccache
+
+      # Install and configure ccache
+      - name: Install and configure ccache
         run: |
           sudo apt install -y ccache
           echo "CCACHE_DIR=$HOME/.ccache" >> $GITHUB_ENV
           echo "CCACHE_MAXSIZE=5G" >> $GITHUB_ENV
           echo "PATH=/usr/lib/ccache:$PATH" >> $GITHUB_ENV
-      
-      # 编译内核
-      - name: 编译内核
+
+      # Compile the kernel
+      - name: Compile kernel
         env:
           CCACHE_DIR: ${{ env.CCACHE_DIR }}
           PATH: ${{ env.PATH }}
         run: |
-          # 导出 ccache 环境变量
+          # Export ccache environment variables
           export CCACHE_DIR="$HOME/.ccache"
           export PATH="/usr/lib/ccache:$PATH"
-          
-          # 执行内核编译脚本
+
+          # Run the kernel build script
           sudo sh raphael-kernel_build.sh ${{ inputs.kernel_version }}
-      
-      # 获取当前时间戳
-      - name: 获取构建时间
+
+      # Get build timestamp
+      - name: Get build timestamp
         id: get-timestamp
         run: |
-          echo "timestamp=$(TZ='Asia/Shanghai' date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
-      
-      # 列出编译产物
-      - name: 列出编译产物
+          echo "timestamp=$(TZ='Europe/Moscow' date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
+
+      # List build artifacts
+      - name: List build artifacts
         run: ls -la *.deb || true
-      
-      # 创建 GitHub Release 并上传编译产物
-      - name: 创建 Release 并上传产物
+
+      # Create a GitHub Release and upload artifacts
+      - name: Create Release and upload artifacts
         uses: softprops/action-gh-release@v1
         with:
           tag_name: kernel-v${{ inputs.kernel_version }}
-          name: "xiaomi raphael linux内核 v${{ inputs.kernel_version }}"
+          name: "Xiaomi Raphael Linux Kernel v${{ inputs.kernel_version }}"
           body: |
-            xiaomi raphael linux内核
-            - 版本: ${{ inputs.kernel_version }}
-            - 构建时间: ${{ steps.get-timestamp.outputs.timestamp }}
-            - 构建 ID: ${{ env.BUILD_TIMESTAMP }}
+            Xiaomi Raphael Linux Kernel
+            - Version: ${{ inputs.kernel_version }}
+            - Build time: ${{ steps.get-timestamp.outputs.timestamp }}
+            - Build ID: ${{ env.BUILD_TIMESTAMP }}
           draft: false
           prerelease: false
           files: |
@@ -102,9 +102,9 @@ jobs:
             alsa-xiaomi-raphael.deb
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      # 上传编译产物作为工作流制品
-      - name: 上传内核包作为工作流制品
+
+      # Upload kernel packages as a workflow artifact
+      - name: Upload kernel packages as workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: kernel-packages-v${{ inputs.kernel_version }}
