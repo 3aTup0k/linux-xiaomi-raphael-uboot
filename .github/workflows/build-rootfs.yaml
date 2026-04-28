@@ -1,5 +1,5 @@
 # Unified System Image Build Workflow - Runs on Ubuntu 24.04 ARM
-name: build-rootfs
+name: RootFS Building
 
 # Manual trigger with all parameters configurable
 on:
