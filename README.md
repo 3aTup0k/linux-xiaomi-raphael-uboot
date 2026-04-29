@@ -1,131 +1,132 @@
-# 小米 Raphael 设备 Linux 系统镜像构建项目
+# Xiaomi Raphael Linux System Image Building Project
 
-本项目提供用于小米 Raphael 设备（Redmi K20 Pro）的 Debian/Ubuntu Linux 系统镜像构建脚本和自动化工作流，支持桌面环境和服务器版本。
+This project provides build scripts and automated workflows for Debian/Ubuntu Linux system images for Xiaomi Raphael devices (Redmi K20 Pro), supporting both desktop environments and server editions.
 
-## 📋 项目概述
+## 📋 Project Overview
 
-本项目包含完整的构建工具链，可用于构建适用于小米 Raphael 设备的 Linux 系统镜像，包括：
+This project includes a complete build toolchain to create Linux system images for Xiaomi Raphael devices, including:
 
-- **内核编译工作流** - 自动化编译定制的 Linux 内核
-- **Debian gnome** - 带 gnome 桌面环境的 Debian 系统
-- **Debian Phosh** - 带 Phosh 桌面环境的 Debian 系统
-- **Debian Server** - 无图形界面的 Debian 服务器系统
-- **Ubuntu gnome** - 带 gnome 桌面环境的 Ubuntu 系统
-- **Ubuntu Phosh** - 带 Phosh 桌面环境的 Ubuntu 系统
-- **Ubuntu Server** - 无图形界面的 Ubuntu 服务器系统
+- **Kernel Compilation Workflow** - Automates the compilation of a custom Linux kernel
+- **Debian GNOME** - Debian with GNOME desktop environment
+- **Debian Phosh** - Debian with Phosh desktop environment
+- **Debian Server** - Debian server without a graphical interface
+- **Ubuntu GNOME** - Ubuntu with GNOME desktop environment
+- **Ubuntu Phosh** - Ubuntu with Phosh desktop environment
+- **Ubuntu Server** - Ubuntu server without a graphical interface
 
-## 📋 目前工作
+## 📋 Current Status
 
-- ✅ Wi-Fi (2.4Ghz，5Ghz)
-- ✅ 蓝牙 (文件传输，音频)
-- ✅ USB (ssh，OTG)
-- ✅ 电池
-- ✅ 实时时钟
-- ✅ 显示
-- ✅ 触摸
-- ✅ 手电筒 (LED及强度调节)
+- ✅ Wi-Fi (2.4 GHz, 5 GHz)
+- ✅ Bluetooth (file transfer, audio)
+- ✅ USB (SSH, OTG)
+- ✅ Battery
+- ✅ Real-time clock
+- ✅ Display
+- ✅ Touch
+- ✅ Flashlight (LED & intensity control)
 - ✅ GPU
-- ✅ FDE
+- ✅ FDE (Full Disk Encryption)
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 使用 GitHub Actions 自动化构建
+### Using GitHub Actions for Automated Builds
 
-1. **Fork 本仓库**到你的 GitHub 账户
+1. **Fork this repository** to your GitHub account
 
-2. **构建内核**：
-   - 进入仓库的 Actions 页面
-   - 选择 "内核编译" 工作流
-   - 点击 "Run workflow"
-   - 输入内核版本号（如 `6.18`）
-   - 等待构建完成，产物将自动发布到 Releases
+2. **Build the kernel**:
+   - Go to the Actions page of your repository
+   - Select the "Kernel compilation" workflow
+   - Click "Run workflow"
+   - Enter the kernel version (e.g., `6.18`)
+   - Wait for the build to finish; the artifacts will be automatically published to Releases
 
-3. **构建系统镜像**：
-   - 选择 "构建系统镜像" 工作流
-   - 点击 "Run workflow"
-   - 选择系统类型：
-       - `debian-gnome`：Debian gnome 版
-       - `debian-phosh`：Debian Phosh 版
-       - `debian-server`：Debian 服务器版
-       - `ubuntu-gnome`：Ubuntu gnome 版
-       - `ubuntu-phosh`：Ubuntu Phosh 版
-       - `ubuntu-server`：Ubuntu 服务器版
-   - 内核版本号：
-       - `上一步构建的内核版本号`
-   - 选择桌面环境（仅适用于Phosh版本，GNOME版本和server版本无需选择）：
-       - `phosh-core`：基础 Phosh 环境
-       - `phosh-full`：完整的 Phosh 环境
-       - `phosh-phone`：手机优化的 Phosh 环境
-   - 等待构建完成，镜像将自动发布到 Releases
+3. **Build a system image**:
+   - Select the "Build system image" workflow
+   - Click "Run workflow"
+   - Choose the system type:
+       - `debian-gnome` — Debian GNOME edition
+       - `debian-phosh` — Debian Phosh edition
+       - `debian-server` — Debian server edition
+       - `ubuntu-gnome` — Ubuntu GNOME edition
+       - `ubuntu-phosh` — Ubuntu Phosh edition
+       - `ubuntu-server` — Ubuntu server edition
+   - Kernel version:
+       - `the kernel version from the previous step`
+   - Choose a desktop environment (only for Phosh editions; not needed for GNOME and server editions):
+       - `phosh-core` — basic Phosh environment
+       - `phosh-full` — full Phosh environment
+       - `phosh-phone` — phone-optimized Phosh environment
+   - Wait for the build to finish; the image will be automatically published to Releases
 
-## 📦 镜像特性
+## 📦 Image Features
 
-### 通用特性
-- ✅ 清华大学软件源
-- ✅ 简体中文语言环境
-- ✅ 中国标准时区
-- ✅ 支持NCM（usb连接电脑，ssh示例：`ssh user@172.16.42.1`）
-- ✅ 预装 SSH 服务器
-- ✅ 允许 root SSH 登录
-- ✅ 包含必要的设备驱动和固件
-- ✅ 默认用户：`user`（密码：`1234`），`root`（密码：`1234`）
-- ✅ [一键更新内核脚本](https://github.com/GengWei1997/kernel-deb)
+### Common Features
+- ✅ Tsinghua University mirror for package sources
+- ✅ Simplified Chinese locale
+- ✅ China Standard Time zone
+- ✅ NCM support (USB connection to PC, SSH example: `ssh user@172.16.42.1`)
+- ✅ Preinstalled SSH server
+- ✅ Root SSH login enabled
+- ✅ Includes necessary device drivers and firmware
+- ✅ Default users: `user` (password: `1234`), `root` (password: `1234`)
+- ✅ [One-click kernel update script](https://github.com/GengWei1997/kernel-deb)
 
-### 桌面版额外特性
-- ✅ GNOME 桌面环境(电源键无法息屏）
-- ✅ Phosh 移动桌面环境
+### Additional Desktop Features
+- ✅ GNOME desktop environment (power button does not turn off screen)
+- ✅ Phosh mobile desktop environment
 
-### 服务器版额外特性
-- ✅ 网络管理器
-- ✅ 开机15秒后自动熄屏
-- ✅ 命令行输入 `leijun` 关闭屏幕，`jinfan` 打开屏幕
+### Additional Server Features
+- ✅ Network Manager
+- ✅ Automatic screen off 15 seconds after boot
+- ✅ Command line: type `leijun` to turn off the screen, `jinfan` to turn it on
 
-## 🔧 安装到设备
+## 🔧 Flashing to the Device
 
-### 准备工作
-1. **解锁 Bootloader**：确保设备已解锁 Bootloader
-2. **安装工具**：安装 `fastboot` 和 `adb`
+### Prerequisites
+1. **Unlock Bootloader**: Make sure the device bootloader is unlocked.
+2. **Install tools**: Install `fastboot` and `adb`.
 
-### 刷机步骤
+### Flashing Steps
 
 ```bash
-# 1. 进入 Fastboot 模式
+# 1. Enter Fastboot mode
 adb reboot bootloader
 
-# 2. 擦除分区
+# 2. Erase partitions
 fastboot erase dtbo
 fastboot erase boot
 fastboot erase cache
 fastboot erase userdata
 
-# 3. 刷入 boot 镜像
+# 3. Flash boot images
 fastboot flash cache xiaomi-k20pro-boot.img
 fastboot flash boot u-boot.img
 
-# 4. 刷入系统镜像（需要先解压 rootfs.7z）
+# 4. Flash the system image (first extract rootfs.7z)
 fastboot flash userdata rootfs.img
 
-# 5. 重启设备
+# 5. Reboot the device
 fastboot reboot
 ```
 
-## ❓ 常见问题解答 (FAQ)
+## ❓ Frequently Asked Questions (FAQ)
 
-- [解决Windows下无法连接使用CDC NCM驱动](https://www.bilibili.com/video/BV1tW4y1A79V/)
+- [How to fix CDC NCM driver issues on Windows](https://www.bilibili.com/video/BV1tW4y1A79V/)
 
-- server版怎么连接网络？？？
-	- 1.OTG连接网线系统会自动识别
-	- 2.OTG连接键盘输入 `nmtui` 连接wifi
-	- 3.usb连接电脑安装好NCM驱动后输入 `nmtui` 连接wifi
+- How to connect to a network on the server edition?
+	- 1. Connect an Ethernet cable via OTG – the system will recognize it automatically.
+	- 2. Connect a keyboard via OTG, then run `nmtui` to connect to Wi-Fi.
+	- 3. Connect the device to a PC via USB, install the NCM driver, then run `nmtui` to connect to Wi-Fi.
 
-## 🙏 致谢
+## 🙏 Acknowledgements
 
-- 感谢所有 Linux 内核开发者的辛勤工作
-- 感谢 Debian 和 Ubuntu 社区
-- 感谢 Phosh 桌面环境开发团队
-- 感谢所有贡献者和用户的支持
-- [@璀璨梦星](https://github.com/ccmx200) - 提供帮助以及创新思路
-- [@map220v](https://github.com/map220v/ubuntu-xiaomi-nabu) - 原项目
-- [@Pc1598](https://github.com/Pc1598) - sm8150-mainline-raphael内核维护
-- [Aospa-raphael-unofficial/linux](https://github.com/Aospa-raphael-unofficial/linux) - 内核项目
-- [sm8150-mainline/linux](https://gitlab.com/sm8150-mainline/linux) - 内核项目
+- Thanks to all Linux kernel developers for their hard work
+- Thanks to the Debian and Ubuntu communities
+- Thanks to the Phosh desktop environment development team
+- Thanks to all contributors and users for their support
+- [@璀璨梦星](https://github.com/ccmx200) – for help and innovative ideas
+- [@map220v](https://github.com/map220v/ubuntu-xiaomi-nabu) – original project
+- [@Pc1598](https://github.com/Pc1598) – sm8150-mainline-raphael kernel maintenance
+- [Aospa-raphael-unofficial/linux](https://github.com/Aospa-raphael-unofficial/linux) – kernel project
+- [sm8150-mainline/linux](https://gitlab.com/sm8150-mainline/linux) – kernel project
+- 
