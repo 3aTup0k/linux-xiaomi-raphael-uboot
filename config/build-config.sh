@@ -1,14 +1,18 @@
-# 系统类型配置
+# System type configuration
 SYSTEM_TYPES="
   debian-server
   debian-gnome
   debian-phosh
+  debian-xfce
+  debian-kde
   ubuntu-server
   ubuntu-gnome
   ubuntu-phosh
+  ubuntu-xfce
+  ubuntu-kde
 "
 
-# 系统类型到基础设置的映射
+# Mapping from system type to base settings
 system_config() {
   case "$1" in
     "debian-server")
@@ -29,6 +33,18 @@ system_config() {
       echo "IS_DESKTOP=true"
       echo "DESKTOP_ENV=$2"
       ;;
+    "debian-xfce")
+      echo "DEBIAN_VERSION=${DEBIAN_VERSION:-trixie}"
+      echo "IMAGE_SIZE=6G"
+      echo "IS_DESKTOP=true"
+      echo "DESKTOP_ENV=xfce"
+      ;;
+    "debian-kde")
+      echo "DEBIAN_VERSION=${DEBIAN_VERSION:-trixie}"
+      echo "IMAGE_SIZE=6G"
+      echo "IS_DESKTOP=true"
+      echo "DESKTOP_ENV=kde"
+      ;;
     "ubuntu-server")
       echo "UBUNTU_VERSION=${UBUNTU_VERSION:-resolute}"
       echo "IMAGE_SIZE=3G"
@@ -47,10 +63,22 @@ system_config() {
       echo "IS_DESKTOP=true"
       echo "DESKTOP_ENV=$2"
       ;;
+    "ubuntu-xfce")
+      echo "UBUNTU_VERSION=${UBUNTU_VERSION:-resolute}"
+      echo "IMAGE_SIZE=6G"
+      echo "IS_DESKTOP=true"
+      echo "DESKTOP_ENV=xfce"
+      ;;
+    "ubuntu-kde")
+      echo "UBUNTU_VERSION=${UBUNTU_VERSION:-resolute}"
+      echo "IMAGE_SIZE=6G"
+      echo "IS_DESKTOP=true"
+      echo "DESKTOP_ENV=kde"
+      ;;
   esac
 }
 
-# 镜像源配置
+# Mirror configuration
 sources_config() {
   if [[ "$1" == *"debian-"* ]]; then
     local version="${DEBIAN_VERSION:-trixie}"
@@ -63,18 +91,12 @@ sources_config() {
   fi
 }
 
-# 软件包配置
+# Package configuration
 get_packages() {
   local system_type="$1"
   local desktop_env="$2"
   
   base_packages="bash-completion sudo apt-utils ssh openssh-server nano network-manager systemd-boot initramfs-tools chrony curl wget locales tzdata dnsmasq iptables iproute2"
-  
-  if [[ "$system_type" == *"debian-"* ]]; then
-    base_packages="$base_packages fonts-wqy-microhei"
-  elif [[ "$system_type" == *"ubuntu-"* ]]; then
-    base_packages="$base_packages language-pack-zh-hans"
-  fi
   
   if [[ "$system_type" == *"server"* ]]; then
     echo "$base_packages"
@@ -100,8 +122,14 @@ get_packages() {
       "phosh-phone")
         echo "$base_packages phosh phoc squeekboard gnome-settings-daemon gnome-control-center ofono mobian-tweaks"
         ;;
+      "xfce")
+        echo "$base_packages xfce4 xfce4-goodies xfce4-terminal lightdm"
+        ;;
+      "kde")
+        echo "$base_packages plasma-mobile"
+        ;;
       *)
-        # 默认返回基础包
+        # Default return base packages
         echo "$base_packages"
         ;;
     esac

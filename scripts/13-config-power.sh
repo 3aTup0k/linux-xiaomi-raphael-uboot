@@ -1,14 +1,14 @@
 #!/bin/bash
 set -e
 
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] [13] 🔋 配置电源管理和熄屏"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] [13] 🔋 Configuring power management and screen blanking"
 
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] [13]   └─ 禁用睡眠/挂起目标"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] [13]   └─ Disabling sleep/suspend targets"
 chroot rootdir systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
 
-# 仅在 Ubuntu 构建时配置 NetworkManager
+# Configure NetworkManager only for Ubuntu builds
 if [[ "$SYSTEM_TYPE" == *"ubuntu-"* ]]; then 
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] [13]   └─ 配置 NetworkManager"
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] [13]   └─ Configuring NetworkManager"
     cat > rootdir/etc/netplan/01-network-manager-all.yaml << 'EOF'
 network:
   version: 2
@@ -17,7 +17,7 @@ EOF
 fi
 
 
-# 配置开机 15 秒后自动熄屏的 Systemd 服务
+# Configure Systemd service to auto-blank screen after 15 seconds of boot
 cat > rootdir/etc/systemd/system/blank_screen.service << 'EOF'
 [Unit]
 Description=Auto-blank screen after 15s
@@ -37,4 +37,5 @@ EOF
 chroot rootdir systemctl enable blank_screen.service
 
 
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] [13] ✅ 电源管理配置完成"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] [13] ✅ Power management configuration completed"
+

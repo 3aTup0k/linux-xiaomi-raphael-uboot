@@ -2,30 +2,30 @@
 set -e
 
 
-# 解析参数
-SYSTEM_TYPE="${1:?请指定系统类型}"
+# Parse arguments
+SYSTEM_TYPE="${1:?Please specify system type}"
 KERNEL_VERSION="${2:-6.18}"
 DESKTOP_ENV="${3:-phosh-full}"
 
-# 解析发行版版本参数
+# Parse distribution version arguments
 if [[ "$SYSTEM_TYPE" == *"debian-"* ]]; then
-    DEBIAN_VERSION="${DEBIAN_VERSION:?请设置 DEBIAN_VERSION 环境变量}"
+    DEBIAN_VERSION="${DEBIAN_VERSION:?Please set DEBIAN_VERSION environment variable}"
     export DEBIAN_VERSION
 elif [[ "$SYSTEM_TYPE" == *"ubuntu-"* ]]; then
-    UBUNTU_VERSION="${UBUNTU_VERSION:?请设置 UBUNTU_VERSION 环境变量}"
+    UBUNTU_VERSION="${UBUNTU_VERSION:?Please set UBUNTU_VERSION environment variable}"
     export UBUNTU_VERSION
 fi
 
-# 解析构建模式参数
+# Parse build mode arguments
 USE_DOCKER="${5:-false}"
 export USE_DOCKER
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# 加载配置文件
+# Load config file
 . "$SCRIPT_DIR/config/build-config.sh"
 
-# 加载系统配置
+# Load system configuration
 TMP_SYSTEM_CONFIG=$(mktemp)
 system_config "$SYSTEM_TYPE" "$DESKTOP_ENV" > "$TMP_SYSTEM_CONFIG"
 while IFS= read -r line; do
@@ -33,7 +33,7 @@ while IFS= read -r line; do
 done < "$TMP_SYSTEM_CONFIG"
 rm "$TMP_SYSTEM_CONFIG"
 
-# 加载镜像源配置
+# Load mirror configuration
 TMP_SOURCES_CONFIG=$(mktemp)
 sources_config "$SYSTEM_TYPE" > "$TMP_SOURCES_CONFIG"
 while IFS= read -r line; do
@@ -41,7 +41,7 @@ while IFS= read -r line; do
 done < "$TMP_SOURCES_CONFIG"
 rm "$TMP_SOURCES_CONFIG"
 
-# 导出通用变量
+# Export general variables
 export SCRIPT_DIR
 export KERNEL_VERSION
 export DESKTOP_ENV
@@ -56,41 +56,41 @@ export DEBIAN_FRONTEND="noninteractive"
 export SYSTEM_TYPE
 
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] ========================================== 🎉"
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] 系统镜像构建脚本"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] System Image Build Script"
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] ========================================== 🎉"
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] 系统类型:      $SYSTEM_TYPE 🖥️"
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] 内核版本:      $KERNEL_VERSION 🧠"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] System Type:      $SYSTEM_TYPE 🖥️"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] Kernel Version:    $KERNEL_VERSION 🧠"
 if [ -n "$DEBIAN_VERSION" ]; then
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] Debian 版本:   $DEBIAN_VERSION 🐧"
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] Debian Version:   $DEBIAN_VERSION 🐧"
 elif [ -n "$UBUNTU_VERSION" ]; then
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] Ubuntu 版本:   $UBUNTU_VERSION 🦁"
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] Ubuntu Version:   $UBUNTU_VERSION 🦁"
 fi
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] 镜像大小:      $IMAGE_SIZE 💾"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] Image Size:       $IMAGE_SIZE 💾"
 if [ "$IS_DESKTOP" = "true" ]; then
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] 桌面环境:      $DESKTOP_ENV 🎨"
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] Desktop Env:       $DESKTOP_ENV 🎨"
 fi
 BOOTSTRAP_TOOL="${BOOTSTRAP_TOOL:-mmdebstrap}"
 if [ "$BOOTSTRAP_TOOL" = "debootstrap" ]; then
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] 构建模式:      debootstrap 🛠️"
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] Build Mode:       debootstrap 🛠️"
 else
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] 构建模式:      mmdebstrap 📦"
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] Build Mode:       mmdebstrap 📦"
 fi
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] ========================================== 🎉"
 
 if [ ! -f "$BOOT_IMG" ]; then
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] ❌ 错误: $BOOT_IMG 不存在"
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] ❌ Error: $BOOT_IMG does not exist"
     exit 1
 fi
 
 if [ ! -d "$KERNEL_DEBS_DIR" ]; then
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] ❌ 错误: $KERNEL_DEBS_DIR 目录不存在"
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] ❌ Error: $KERNEL_DEBS_DIR directory does not exist"
     exit 1
 fi
 
 chmod +x "$SCRIPT_DIR/scripts"/*.sh
 
 echo ""
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] ========================================== 🚀 开始构建 =========================================="
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] ========================================== 🚀 Starting Build =========================================="
 "$SCRIPT_DIR/scripts/01-create-image.sh"
 "$SCRIPT_DIR/scripts/02-bootstrap.sh"
 "$SCRIPT_DIR/scripts/03-mount-dev.sh"
@@ -106,11 +106,11 @@ echo "[$(date +'%Y-%m-%d %H:%M:%S')] ========================================== 
 "$SCRIPT_DIR/scripts/13-config-power.sh"
 "$SCRIPT_DIR/scripts/14-cleanup.sh"
 "$SCRIPT_DIR/scripts/15-finalize.sh"
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] ========================================== 🎉 构建完成 🎉 =========================================="
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] ========================================== 🎉 Build Finished 🎉 =========================================="
 
 echo ""
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] 📦 产物文件:"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] 📦 Artifacts:"
 ls -lh rootfs.img 2>/dev/null || true
 ls -lh rootfs.7z 2>/dev/null || true
 echo ""
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✅ 构建成功完成!"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✅ Build completed successfully!"

@@ -1,14 +1,14 @@
 #!/bin/bash
 set -e
 
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] [05] 📡 更新 apt 源并更新缓存"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] [05] 📡 Updating apt sources and cache"
 
 export DEBIAN_FRONTEND=noninteractive
 
 cp rootdir/etc/apt/sources.list rootdir/etc/apt/sources.list.bak
 
 if [[ "$SYSTEM_TYPE" == *"ubuntu-"* ]]; then
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] [05]   └─ 配置 Ubuntu $UBUNTU_VERSION 源"
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] [05]   └─ Configuring Ubuntu $UBUNTU_VERSION sources"
     cat > rootdir/etc/apt/sources.list << EOF
 deb http://ports.ubuntu.com/ubuntu-ports/ $UBUNTU_VERSION main restricted universe multiverse
 deb http://ports.ubuntu.com/ubuntu-ports/ $UBUNTU_VERSION-updates main restricted universe multiverse
@@ -16,7 +16,7 @@ deb http://ports.ubuntu.com/ubuntu-ports/ $UBUNTU_VERSION-backports main restric
 deb http://ports.ubuntu.com/ubuntu-ports/ $UBUNTU_VERSION-security main restricted universe multiverse
 EOF
 else
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] [05]   └─ 配置 Debian $DEBIAN_VERSION 源"
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] [05]   └─ Configuring Debian $DEBIAN_VERSION sources"
     cat > rootdir/etc/apt/sources.list << EOF
 deb http://deb.debian.org/debian/ $DEBIAN_VERSION main contrib non-free non-free-firmware
 deb http://deb.debian.org/debian/ $DEBIAN_VERSION-updates main contrib non-free non-free-firmware
@@ -25,7 +25,7 @@ deb http://security.debian.org/debian-security $DEBIAN_VERSION-security main con
 EOF
 fi
 
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] [05]   └─ 执行 apt-get update..."
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] [05]   └─ Executing apt-get update..."
 chroot rootdir apt-get -q update
 
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] [05] ✅ apt 配置完成"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] [05] ✅ apt configuration completed"

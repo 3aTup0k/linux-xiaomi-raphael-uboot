@@ -7,21 +7,21 @@ SYSTEM_TYPE="${SYSTEM_TYPE:-ubuntu-server}"
 DEBIAN_TSUNING_MIRROR="${DEBIAN_TSUNING_MIRROR:-https://mirrors.tuna.tsinghua.edu.cn/debian/}"
 UBUNTU_TSUNING_MIRROR="${UBUNTU_TSUNING_MIRROR:-https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/}"
 
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] [14] 🧹 清理临时文件"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] [14] 🧹 Cleaning up temporary files"
 
 export DEBIAN_FRONTEND=noninteractive
 
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] [14]   └─ 清理 apt-get 缓存"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] [14]   └─ Cleaning apt-get cache"
 chroot rootdir apt-get -q clean
 
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] [14]   └─ 重命名内核文件"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] [14]   └─ Renaming kernel files"
 mv rootdir/boot/initrd.img-* rootdir/boot/initramfs 2>/dev/null || true
 mv rootdir/boot/vmlinuz-* rootdir/boot/linux.efi 2>/dev/null || true
 
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] [14]   └─ 清理固件文件"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] [14]   └─ Cleaning firmware files"
 rm -f rootdir/lib/firmware/reg* 2>/dev/null || true
 
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] [14]   └─ 配置清华源"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] [14]   └─ Configuring Tsinghua mirrors"
 if [[ "$SYSTEM_TYPE" == *"debian-"* ]]; then
     if [ -n "$DEBIAN_VERSION" ]; then
         cat > rootdir/etc/apt/sources.list << EOF
@@ -43,7 +43,7 @@ EOF
 fi
 
 echo ""
-echo "========================================== 📋 配置文件预览 =========================================="
+echo "========================================== 📋 Configuration Preview =========================================="
 
 echo ""
 echo "[/etc/apt/sources.list]"
@@ -51,21 +51,21 @@ cat rootdir/etc/apt/sources.list
 
 echo ""
 echo "[/etc/netplan/01-network-manager-all.yaml]"
-cat rootdir/etc/netplan/01-network-manager-all.yaml 2>/dev/null || echo "(文件不存在)"
+cat rootdir/etc/netplan/01-network-manager-all.yaml 2>/dev/null || echo "(File does not exist)"
 
 echo ""
 echo "[/etc/systemd/system/usb-ncm.service]"
-cat rootdir/etc/systemd/system/usb-ncm.service 2>/dev/null || echo "(文件不存在)"
+cat rootdir/etc/systemd/system/usb-ncm.service 2>/dev/null || echo "(File does not exist)"
 
 echo ""
 echo "[/etc/dnsmasq.d/usb-ncm.conf]"
-cat rootdir/etc/dnsmasq.d/usb-ncm.conf 2>/dev/null || echo "(文件不存在)"
+cat rootdir/etc/dnsmasq.d/usb-ncm.conf 2>/dev/null || echo "(File does not exist)"
 
 echo ""
 echo "[/etc/fstab]"
-cat rootdir/etc/fstab 2>/dev/null || echo "(文件不存在)"
+cat rootdir/etc/fstab 2>/dev/null || echo "(File does not exist)"
 
 echo ""
-echo "========================================== 📋 配置文件预览结束 =========================================="
+echo "========================================== 📋 Configuration Preview End =========================================="
 
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] [14] ✅ 清理完成"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] [14] ✅ Cleanup completed"

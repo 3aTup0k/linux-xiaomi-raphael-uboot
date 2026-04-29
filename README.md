@@ -9,9 +9,13 @@ This project includes a complete build toolchain to create Linux system images f
 - **Kernel Compilation Workflow** - Automates the compilation of a custom Linux kernel
 - **Debian GNOME** - Debian with GNOME desktop environment
 - **Debian Phosh** - Debian with Phosh desktop environment
+- **Debian XFCE** - Debian with XFCE desktop environment
+- **Debian KDE Mobile** - Debian with KDE Mobile environment
 - **Debian Server** - Debian server without a graphical interface
 - **Ubuntu GNOME** - Ubuntu with GNOME desktop environment
 - **Ubuntu Phosh** - Ubuntu with Phosh desktop environment
+- **Ubuntu XFCE** - Ubuntu with XFCE desktop environment
+- **Ubuntu KDE Mobile** - Ubuntu with KDE Mobile environment
 - **Ubuntu Server** - Ubuntu server without a graphical interface
 
 ## 📋 Current Status
@@ -46,13 +50,17 @@ This project includes a complete build toolchain to create Linux system images f
    - Choose the system type:
        - `debian-gnome` — Debian GNOME edition
        - `debian-phosh` — Debian Phosh edition
+       - `debian-xfce` — Debian XFCE edition
+       - `debian-kde` — Debian KDE Mobile edition
        - `debian-server` — Debian server edition
        - `ubuntu-gnome` — Ubuntu GNOME edition
        - `ubuntu-phosh` — Ubuntu Phosh edition
+       - `ubuntu-xfce` — Ubuntu XFCE edition
+       - `ubuntu-kde` — Ubuntu KDE Mobile edition
        - `ubuntu-server` — Ubuntu server edition
    - Kernel version:
        - `the kernel version from the previous step`
-   - Choose a desktop environment (only for Phosh editions; not needed for GNOME and server editions):
+   - Choose a desktop environment (only for Phosh editions; not needed for others):
        - `phosh-core` — basic Phosh environment
        - `phosh-full` — full Phosh environment
        - `phosh-phone` — phone-optimized Phosh environment
@@ -62,8 +70,8 @@ This project includes a complete build toolchain to create Linux system images f
 
 ### Common Features
 - ✅ Tsinghua University mirror for package sources
-- ✅ Simplified Chinese locale
-- ✅ China Standard Time zone
+- ✅ English locale (en_US.UTF-8)
+- ✅ Moscow Time zone (Europe/Moscow)
 - ✅ NCM support (USB connection to PC, SSH example: `ssh user@172.16.42.1`)
 - ✅ Preinstalled SSH server
 - ✅ Root SSH login enabled
@@ -74,6 +82,8 @@ This project includes a complete build toolchain to create Linux system images f
 ### Additional Desktop Features
 - ✅ GNOME desktop environment (power button does not turn off screen)
 - ✅ Phosh mobile desktop environment
+- ✅ XFCE desktop environment
+- ✅ KDE Mobile desktop environment
 
 ### Additional Server Features
 - ✅ Network Manager
