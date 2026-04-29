@@ -41,7 +41,7 @@ system_config() {
       ;;
     "debian-kde")
       echo "DEBIAN_VERSION=${DEBIAN_VERSION:-trixie}"
-      echo "IMAGE_SIZE=6G"
+      echo "IMAGE_SIZE=8G"
       echo "IS_DESKTOP=true"
       echo "DESKTOP_ENV=kde"
       ;;
@@ -71,7 +71,7 @@ system_config() {
       ;;
     "ubuntu-kde")
       echo "UBUNTU_VERSION=${UBUNTU_VERSION:-resolute}"
-      echo "IMAGE_SIZE=6G"
+      echo "IMAGE_SIZE=8G"
       echo "IS_DESKTOP=true"
       echo "DESKTOP_ENV=kde"
       ;;
