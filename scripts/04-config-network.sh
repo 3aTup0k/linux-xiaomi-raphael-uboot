@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-HOSTNAME="${HOSTNAME:-xiaomi-raphael}"
+HOSTNAME="${HOSTNAME:-raphael}"
 NAMESERVER="${NAMESERVER:-1.1.1.1}"
 
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] [04] 🌐 Configuring network and hostname"
