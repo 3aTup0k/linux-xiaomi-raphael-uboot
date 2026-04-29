@@ -62,7 +62,7 @@ on:
       - '*.sh'
 
 env:
-  HOSTNAME: xiaomi-raphael
+  HOSTNAME: raphael
   BOOT_IMG: xiaomi-k20pro-boot.img
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   SUPPRESS_DEPRECATION_WARNINGS: true
