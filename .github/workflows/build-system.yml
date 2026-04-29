@@ -460,8 +460,6 @@ jobs:
             echo "> Automated build version - ${TIMESTAMP}"
             echo ""
             echo "### 📦 Image List"
-            echo "| Filename | System Type | Kernel Version | OS Version |"
-            echo "|----------|------------|----------------|------------|"
             echo "$FILE_LIST"
             echo ""
             echo "### 🔒 SHA256 Checksums"
@@ -484,7 +482,7 @@ jobs:
             echo "- SSH command: \`ssh user@172.16.42.1\`"
             echo ""
             echo "---"
-            echo "*Built with ❤️ by GitHub Actions*"
+            echo "*Built with love by GitHub Actions & voxelsy*"
             echo "EOF"
           } >> $GITHUB_OUTPUT
 
