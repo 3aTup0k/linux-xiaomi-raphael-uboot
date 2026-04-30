@@ -49,7 +49,27 @@ if [[ "$SYSTEM_TYPE" != *"server"* ]]; then
 AutomaticLoginEnable=true
 AutomaticLogin=user
 EOF
+    elif [ "$DESKTOP_ENV" = "xfce" ]; then
+        echo "[$(date +'%Y-%m-%d %H:%M:%S')] [06]   └─ Configuring LightDM auto-login"
+        mkdir -p rootdir/etc/lightdm
+        cat > rootdir/etc/lightdm/lightdm.conf << 'EOF'
+[Seat:*]
+autologin-user=user
+autologin-user-timeout=0
+EOF
+        chroot rootdir systemctl enable lightdm
+    elif [ "$DESKTOP_ENV" = "kde" ]; then
+        echo "[$(date +'%Y-%m-%d %H:%M:%S')] [06]   └─ Configuring SDDM auto-login"
+        mkdir -p rootdir/etc/sddm.conf.d
+        cat > rootdir/etc/sddm.conf.d/autologin.conf << 'EOF'
+[Autologin]
+User=user
+Session=plasma
+EOF
+        chroot rootdir systemctl enable sddm
     fi
+
+
 fi
 
 if [ -f "alsa-xiaomi-raphael.deb" ]; then

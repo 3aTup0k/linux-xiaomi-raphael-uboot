@@ -126,7 +126,7 @@ get_packages() {
         echo "$base_packages xfce4 xfce4-goodies xfce4-terminal lightdm"
         ;;
       "kde")
-        echo "$base_packages plasma-mobile"
+        echo "$base_packages plasma-mobile sddm"
         ;;
       *)
         # Default return base packages
