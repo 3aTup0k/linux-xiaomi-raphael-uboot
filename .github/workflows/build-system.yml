@@ -100,7 +100,11 @@ jobs:
             KERN_VER=$(echo "$KERN_VERS" | cut -d',' -f1)
             TOOL=$(echo "$BOOT_TOOLS" | cut -d',' -f1)
             
-            if [[ "$SYS_TYPE" == debian-* ]]; then
+            if [[ "$SYS_TYPE" == kali-* ]]; then
+              DEB_VER="kali-rolling"
+              UBU_VER=""
+              OS_VER="kali-rolling"
+            elif [[ "$SYS_TYPE" == debian-* ]]; then
               DEB_VER=$(echo "$DEB_VERS" | cut -d',' -f1)
               UBU_VER=""
               OS_VER="$DEB_VER"
@@ -164,6 +168,22 @@ jobs:
               fi
             done
             
+            # Generate Kali combinations (always kali-rolling)
+            for sys in "${SYS_ARRAY[@]}"; do
+              if [[ "$sys" == kali-* ]]; then
+                for kern in "${KERN_ARRAY[@]}"; do
+                  for tool in "${TOOL_ARRAY[@]}"; do
+                    if [ "$FIRST_ITEM" = true ]; then
+                      FIRST_ITEM=false
+                    else
+                      MATRIX="${MATRIX},"
+                    fi
+                    MATRIX="${MATRIX}{\"system_type\":\"$sys\",\"kernel_version\":\"$kern\",\"bootstrap_tool\":\"$tool\",\"debian_version\":\"kali-rolling\",\"ubuntu_version\":\"\",\"desktop_env\":\"$DESKTOP_ENV\"}"
+                  done
+                done
+              fi
+            done
+            
             MATRIX="${MATRIX}]"
           fi
           
@@ -214,6 +234,13 @@ jobs:
             else
               echo "[$(date +'%Y-%m-%d %H:%M:%S')]   debootstrap already installed, skipping"
             fi
+          fi
+          
+          # Install Kali keyring if building Kali
+          if [[ "${{ env.SYSTEM_TYPE }}" == kali-* ]]; then
+            echo "[$(date +'%Y-%m-%d %H:%M:%S')]   Installing kali-archive-keyring..."
+            wget -q -O- https://archive.kali.org/archive-key.asc | sudo gpg --dearmor -o /usr/share/keyrings/kali-archive-keyring.gpg
+            echo "[$(date +'%Y-%m-%d %H:%M:%S')]   kali-archive-keyring installed"
           fi
 
       - name: Download kernel packages and boot.img (parallel)
@@ -343,7 +370,9 @@ jobs:
             OS_VER="${{ needs.generate-matrix.outputs.single_os_version }}"
             
             # Determine OS name
-            if [[ "$SYS_TYPE" == debian-* ]]; then
+            if [[ "$SYS_TYPE" == kali-* ]]; then
+              OS_NAME="Kali"
+            elif [[ "$SYS_TYPE" == debian-* ]]; then
               OS_NAME="Debian"
             else
               OS_NAME="Ubuntu"
