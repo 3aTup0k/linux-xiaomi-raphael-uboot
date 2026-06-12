@@ -9,7 +9,11 @@ BOOTSTRAP_TOOL="${BOOTSTRAP_TOOL:-mmdebstrap}"
 
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] [02] 🚀 Installing base system"
 
-if [[ "$SYSTEM_TYPE" == *"debian-"* ]]; then
+if [[ "$SYSTEM_TYPE" == *"kali-"* ]]; then
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] [02]   └─ Using $BOOTSTRAP_TOOL to build Kali $DEBIAN_VERSION 🐉"
+    OS_VERSION="$DEBIAN_VERSION"
+    MIRROR="http://http.kali.org/kali/"
+elif [[ "$SYSTEM_TYPE" == *"debian-"* ]]; then
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] [02]   └─ Using $BOOTSTRAP_TOOL to build Debian $DEBIAN_VERSION 🐧"
     OS_VERSION="$DEBIAN_VERSION"
     MIRROR="http://deb.debian.org/debian/"

@@ -7,7 +7,12 @@ export DEBIAN_FRONTEND=noninteractive
 
 cp rootdir/etc/apt/sources.list rootdir/etc/apt/sources.list.bak
 
-if [[ "$SYSTEM_TYPE" == *"ubuntu-"* ]]; then
+if [[ "$SYSTEM_TYPE" == *"kali-"* ]]; then
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] [05]   └─ Configuring Kali $DEBIAN_VERSION sources"
+    cat > rootdir/etc/apt/sources.list << EOF
+deb http://http.kali.org/kali/ $DEBIAN_VERSION main non-free contrib
+EOF
+elif [[ "$SYSTEM_TYPE" == *"ubuntu-"* ]]; then
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] [05]   └─ Configuring Ubuntu $UBUNTU_VERSION sources"
     cat > rootdir/etc/apt/sources.list << EOF
 deb http://ports.ubuntu.com/ubuntu-ports/ $UBUNTU_VERSION main restricted universe multiverse

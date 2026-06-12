@@ -3,8 +3,10 @@ set -e
 
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] [13] 🔋 Configuring power management and screen blanking"
 
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] [13]   └─ Disabling sleep/suspend targets"
-chroot rootdir systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
+if [[ "$SYSTEM_TYPE" != *"server"* ]]; then
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] [13]   └─ Disabling sleep/suspend targets"
+    chroot rootdir systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
+fi
 
 # Configure NetworkManager only for Ubuntu builds
 if [[ "$SYSTEM_TYPE" == *"ubuntu-"* ]]; then 
@@ -36,6 +38,20 @@ WantedBy=multi-user.target
 EOF
 chroot rootdir systemctl enable blank_screen.service
 
+
+# Disable WiFi power saving to fix ping spikes
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] [13]   └─ Disabling WiFi power saving"
+mkdir -p rootdir/etc/NetworkManager/conf.d
+cat > rootdir/etc/NetworkManager/conf.d/wifi-powersave.conf << 'EOF'
+[connection]
+wifi.powersave = 2
+EOF
+
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] [13]   └─ Configuring ath10k wireless module"
+mkdir -p rootdir/etc/modprobe.d
+cat > rootdir/etc/modprobe.d/ath10k.conf << 'EOF'
+options ath10k_core skip_otp=y
+EOF
 
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] [13] ✅ Power management configuration completed"
 

@@ -28,8 +28,8 @@ echo "[$(date +'%Y-%m-%d %H:%M:%S')] [06]   └─ Device packages: $(echo "$DEV
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] [06]   └─ Starting installation (this may take a few minutes...)"
 chroot rootdir apt-get install -y $ALL_PACKAGES $DEVICE_PACKAGES
 
-if [[ "$SYSTEM_TYPE" == *"debian-"* ]]; then
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] [06]   └─ Fixing Debian dpkg errors"
+if [[ "$SYSTEM_TYPE" == *"debian-"* ]] || [[ "$SYSTEM_TYPE" == *"kali-"* ]]; then
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] [06]   └─ Fixing Debian/Kali dpkg errors"
     chroot rootdir dpkg --remove --force-remove-reinstreq shim-signed 2>/dev/null || true
     chroot rootdir dpkg --purge shim-signed 2>/dev/null || true
     chroot rootdir dpkg --configure -a 2>/dev/null || true
@@ -37,7 +37,7 @@ if [[ "$SYSTEM_TYPE" == *"debian-"* ]]; then
 fi
 
 # Modify service configuration
-if [[ "$SYSTEM_TYPE" == *"debian-"* ]]; then
+if [[ "$SYSTEM_TYPE" == *"debian-"* ]] || [[ "$SYSTEM_TYPE" == *"kali-"* ]]; then
     sed -i '/ConditionKernelVersion/d' rootdir/lib/systemd/system/pd-mapper.service 2>/dev/null || true
 fi
 

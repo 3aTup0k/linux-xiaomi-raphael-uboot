@@ -14,6 +14,9 @@ if [[ "$SYSTEM_TYPE" == *"debian-"* ]]; then
 elif [[ "$SYSTEM_TYPE" == *"ubuntu-"* ]]; then
     UBUNTU_VERSION="${UBUNTU_VERSION:?Please set UBUNTU_VERSION environment variable}"
     export UBUNTU_VERSION
+elif [[ "$SYSTEM_TYPE" == *"kali-"* ]]; then
+    DEBIAN_VERSION="${DEBIAN_VERSION:-kali-rolling}"
+    export DEBIAN_VERSION
 fi
 
 # Parse build mode arguments
@@ -65,6 +68,9 @@ if [ -n "$DEBIAN_VERSION" ]; then
 elif [ -n "$UBUNTU_VERSION" ]; then
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] Ubuntu Version:   $UBUNTU_VERSION 🦁"
 fi
+if [[ "$SYSTEM_TYPE" == *"kali-"* ]]; then
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] Kali Version:     kali-rolling 🐉"
+fi
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] Image Size:       $IMAGE_SIZE 💾"
 if [ "$IS_DESKTOP" = "true" ]; then
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] Desktop Env:       $DESKTOP_ENV 🎨"
@@ -104,8 +110,9 @@ echo "[$(date +'%Y-%m-%d %H:%M:%S')] ========================================== 
 "$SCRIPT_DIR/scripts/11-config-fstab.sh"
 "$SCRIPT_DIR/scripts/12-create-users.sh"
 "$SCRIPT_DIR/scripts/13-config-power.sh"
-"$SCRIPT_DIR/scripts/14-cleanup.sh"
-"$SCRIPT_DIR/scripts/15-finalize.sh"
+"$SCRIPT_DIR/scripts/14-config-zram.sh"
+"$SCRIPT_DIR/scripts/15-cleanup.sh"
+"$SCRIPT_DIR/scripts/16-finalize.sh"
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] ========================================== 🎉 Build Finished 🎉 =========================================="
 
 echo ""

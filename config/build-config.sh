@@ -10,6 +10,11 @@ SYSTEM_TYPES="
   ubuntu-phosh
   ubuntu-xfce
   ubuntu-kde
+  kali-server
+  kali-gnome
+  kali-phosh
+  kali-xfce
+  kali-kde
 "
 
 # Mapping from system type to base settings
@@ -75,6 +80,36 @@ system_config() {
       echo "IS_DESKTOP=true"
       echo "DESKTOP_ENV=kde"
       ;;
+    "kali-server")
+      echo "DEBIAN_VERSION=${DEBIAN_VERSION:-kali-rolling}"
+      echo "IMAGE_SIZE=4G"
+      echo "IS_DESKTOP=false"
+      echo "DESKTOP_ENV="
+      ;;
+    "kali-gnome")
+      echo "DEBIAN_VERSION=${DEBIAN_VERSION:-kali-rolling}"
+      echo "IMAGE_SIZE=8G"
+      echo "IS_DESKTOP=true"
+      echo "DESKTOP_ENV=gnome"
+      ;;
+    "kali-phosh")
+      echo "DEBIAN_VERSION=${DEBIAN_VERSION:-kali-rolling}"
+      echo "IMAGE_SIZE=8G"
+      echo "IS_DESKTOP=true"
+      echo "DESKTOP_ENV=$2"
+      ;;
+    "kali-xfce")
+      echo "DEBIAN_VERSION=${DEBIAN_VERSION:-kali-rolling}"
+      echo "IMAGE_SIZE=6G"
+      echo "IS_DESKTOP=true"
+      echo "DESKTOP_ENV=xfce"
+      ;;
+    "kali-kde")
+      echo "DEBIAN_VERSION=${DEBIAN_VERSION:-kali-rolling}"
+      echo "IMAGE_SIZE=8G"
+      echo "IS_DESKTOP=true"
+      echo "DESKTOP_ENV=kde"
+      ;;
   esac
 }
 
@@ -88,6 +123,9 @@ sources_config() {
     local version="${UBUNTU_VERSION:-resolute}"
     echo "UBUNTU_MIRROR=https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/"
     echo "UBUNTU_SECURITY_MIRROR=http://ports.ubuntu.com/ubuntu-ports/"
+  elif [[ "$1" == *"kali-"* ]]; then
+    echo "DEBIAN_MIRROR=https://mirrors.tuna.tsinghua.edu.cn/kali/"
+    echo "DEBIAN_SECURITY_MIRROR="
   fi
 }
 
@@ -95,9 +133,35 @@ sources_config() {
 get_packages() {
   local system_type="$1"
   local desktop_env="$2"
-  
-  base_packages="bash-completion sudo apt-utils ssh openssh-server nano network-manager systemd-boot initramfs-tools chrony curl wget locales tzdata dnsmasq iptables iproute2"
-  
+
+  base_packages="bash-completion sudo apt-utils ssh openssh-server nano network-manager systemd-boot initramfs-tools chrony curl wget locales tzdata dnsmasq iptables iproute2 zram-tools"
+
+  # Kali-specific handling
+  if [[ "$system_type" == *"kali-"* ]]; then
+    if [[ "$system_type" == *"server"* ]]; then
+      echo "$base_packages kali-linux-headless"
+    else
+      case "$desktop_env" in
+        "gnome")
+          echo "$base_packages kali-desktop-gnome gdm3"
+          ;;
+        "phosh-core"|"phosh-full"|"phosh-phone")
+          echo "$base_packages phosh phoc squeekboard gnome-settings-daemon gnome-control-center"
+          ;;
+        "xfce")
+          echo "$base_packages kali-desktop-xfce lightdm"
+          ;;
+        "kde")
+          echo "$base_packages kali-desktop-kde sddm"
+          ;;
+        *)
+          echo "$base_packages kali-linux-headless"
+          ;;
+      esac
+    fi
+    return
+  fi
+
   if [[ "$system_type" == *"server"* ]]; then
     echo "$base_packages"
   else
@@ -129,7 +193,6 @@ get_packages() {
         echo "$base_packages plasma-mobile sddm"
         ;;
       *)
-        # Default return base packages
         echo "$base_packages"
         ;;
     esac
