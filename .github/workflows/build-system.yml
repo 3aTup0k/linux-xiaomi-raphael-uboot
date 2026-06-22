@@ -12,17 +12,17 @@ on:
           - single
         default: 'parallel'
       system_types:
-        description: 'System types (separate multiple values with commas, e.g.: debian-server,debian-gnome)'
+        description: 'System types (comma-separated, e.g.: debian-server,debian-gnome,kali-phosh)'
         required: false
-        default: 'debian-server,debian-gnome,debian-phosh,ubuntu-server,ubuntu-gnome,ubuntu-phosh'
+        default: 'kali-kde,kali-xfce,kali-gnome,kali-phosh,debian-server,debian-gnome,debian-phosh,ubuntu-server,ubuntu-gnome,ubuntu-phosh,kali-server,kali-gnome,kali-phosh'
         type: string
       kernel_versions:
-        description: 'Kernel versions (separate multiple values with commas, e.g.: 6.18,7.0)'
+        description: 'Kernel versions (comma-separated, e.g.: 6.18,7.0)'
         required: false
-        default: '6.18,7.0'
+        default: '6.18,7.0,7.1'
         type: string
       bootstrap_tools:
-        description: 'Build tools (separate multiple values with commas, e.g.: mmdebstrap)'
+        description: 'Build tools (comma-separated, e.g.: mmdebstrap)'
         required: false
         default: 'mmdebstrap'
         type: string
@@ -32,20 +32,28 @@ on:
         default: 'phosh-full'
         type: string
       debian_versions:
-        description: 'Debian versions (separate multiple values with commas, e.g.: trixie,bookworm)'
+        description: 'Debian versions (comma-separated, e.g.: trixie,bookworm)'
         required: false
         default: 'trixie'
         type: string
       ubuntu_versions:
-        description: 'Ubuntu versions (separate multiple values with commas, e.g.: noble,resolute)'
+        description: 'Ubuntu versions (comma-separated, e.g.: noble,resolute)'
         required: false
         default: 'resolute'
         type: string
       kernel_repository:
         description: 'Kernel package repository'
         required: false
-        default: 'GengWei1997/linux-xiaomi-raphael-uboot'
+        default: 'GengWei1997/kernel-deb'
         type: string
+      release_tag_mode:
+        description: 'Release tag mode (latest – always overwrites, dated – unique per build)'
+        required: true
+        type: choice
+        options:
+          - latest
+          - dated
+        default: 'dated'
   push:
     branches:
       - main
@@ -84,7 +92,7 @@ jobs:
         id: generate
         run: |
           set -e
-          
+
           BUILD_MODE="${{ github.event.inputs.build_mode }}"
           echo "build_mode=${BUILD_MODE}" >> $GITHUB_OUTPUT
           SYS_TYPES="${{ github.event.inputs.system_types }}"
@@ -93,13 +101,12 @@ jobs:
           DESKTOP_ENV="${{ github.event.inputs.desktop_environments }}"
           DEB_VERS="${{ github.event.inputs.debian_versions }}"
           UBU_VERS="${{ github.event.inputs.ubuntu_versions }}"
-          
+
           if [ "$BUILD_MODE" = "single" ]; then
-            # Single mode: take the first value of each input
             SYS_TYPE=$(echo "$SYS_TYPES" | cut -d',' -f1)
             KERN_VER=$(echo "$KERN_VERS" | cut -d',' -f1)
             TOOL=$(echo "$BOOT_TOOLS" | cut -d',' -f1)
-            
+
             if [[ "$SYS_TYPE" == kali-* ]]; then
               DEB_VER="kali-rolling"
               UBU_VER=""
@@ -113,80 +120,65 @@ jobs:
               UBU_VER=$(echo "$UBU_VERS" | cut -d',' -f1)
               OS_VER="$UBU_VER"
             fi
-            
-            # Output single build info for the release job
+
             echo "single_system_type=${SYS_TYPE}" >> $GITHUB_OUTPUT
             echo "single_kernel_version=${KERN_VER}" >> $GITHUB_OUTPUT
             echo "single_os_version=${OS_VER}" >> $GITHUB_OUTPUT
-            
+
             MATRIX="[{"system_type":"$SYS_TYPE","kernel_version":"$KERN_VER","bootstrap_tool":"$TOOL","debian_version":"$DEB_VER","ubuntu_version":"$UBU_VER","desktop_env":"$DESKTOP_ENV"}]"
           else
-            # Parallel mode: generate JSON using plain bash
             MATRIX="["
             FIRST_ITEM=true
-            
-            # Split strings into arrays
+
             IFS=',' read -ra SYS_ARRAY <<< "$SYS_TYPES"
             IFS=',' read -ra KERN_ARRAY <<< "$KERN_VERS"
             IFS=',' read -ra TOOL_ARRAY <<< "$BOOT_TOOLS"
             IFS=',' read -ra DEB_ARRAY <<< "$DEB_VERS"
             IFS=',' read -ra UBU_ARRAY <<< "$UBU_VERS"
-            
-            # Generate Debian combinations
+
+            # Debian
             for sys in "${SYS_ARRAY[@]}"; do
               if [[ "$sys" == debian-* ]]; then
                 for kern in "${KERN_ARRAY[@]}"; do
                   for tool in "${TOOL_ARRAY[@]}"; do
                     for deb_ver in "${DEB_ARRAY[@]}"; do
-                      if [ "$FIRST_ITEM" = true ]; then
-                        FIRST_ITEM=false
-                      else
-                        MATRIX="${MATRIX},"
-                      fi
+                      if [ "$FIRST_ITEM" = true ]; then FIRST_ITEM=false; else MATRIX="${MATRIX},"; fi
                       MATRIX="${MATRIX}{\"system_type\":\"$sys\",\"kernel_version\":\"$kern\",\"bootstrap_tool\":\"$tool\",\"debian_version\":\"$deb_ver\",\"ubuntu_version\":\"\",\"desktop_env\":\"$DESKTOP_ENV\"}"
                     done
                   done
                 done
               fi
             done
-            
-            # Generate Ubuntu combinations
+
+            # Ubuntu
             for sys in "${SYS_ARRAY[@]}"; do
               if [[ "$sys" == ubuntu-* ]]; then
                 for kern in "${KERN_ARRAY[@]}"; do
                   for tool in "${TOOL_ARRAY[@]}"; do
                     for ubu_ver in "${UBU_ARRAY[@]}"; do
-                      if [ "$FIRST_ITEM" = true ]; then
-                        FIRST_ITEM=false
-                      else
-                        MATRIX="${MATRIX},"
-                      fi
+                      if [ "$FIRST_ITEM" = true ]; then FIRST_ITEM=false; else MATRIX="${MATRIX},"; fi
                       MATRIX="${MATRIX}{\"system_type\":\"$sys\",\"kernel_version\":\"$kern\",\"bootstrap_tool\":\"$tool\",\"debian_version\":\"\",\"ubuntu_version\":\"$ubu_ver\",\"desktop_env\":\"$DESKTOP_ENV\"}"
                     done
                   done
                 done
               fi
             done
-            
-            # Generate Kali combinations (always kali-rolling)
+
+            # Kali (always kali-rolling)
             for sys in "${SYS_ARRAY[@]}"; do
               if [[ "$sys" == kali-* ]]; then
                 for kern in "${KERN_ARRAY[@]}"; do
                   for tool in "${TOOL_ARRAY[@]}"; do
-                    if [ "$FIRST_ITEM" = true ]; then
-                      FIRST_ITEM=false
-                    else
-                      MATRIX="${MATRIX},"
-                    fi
+                    if [ "$FIRST_ITEM" = true ]; then FIRST_ITEM=false; else MATRIX="${MATRIX},"; fi
                     MATRIX="${MATRIX}{\"system_type\":\"$sys\",\"kernel_version\":\"$kern\",\"bootstrap_tool\":\"$tool\",\"debian_version\":\"kali-rolling\",\"ubuntu_version\":\"\",\"desktop_env\":\"$DESKTOP_ENV\"}"
                   done
                 done
               fi
             done
-            
+
             MATRIX="${MATRIX}]"
           fi
-          
+
           echo "Generated matrix: $MATRIX"
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
 
@@ -207,67 +199,101 @@ jobs:
       DEBIAN_VERSION: ${{ matrix.debian_version }}
       UBUNTU_VERSION: ${{ matrix.ubuntu_version }}
       KERNEL_REPO: ${{ github.event.inputs.kernel_repository || 'GengWei1997/linux-xiaomi-raphael-uboot' }}
+      BUILD_DATE: ${{ github.event.head_commit.timestamp || github.run_started_at }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
 
+      - name: Cache APT packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: apt-${{ runner.os }}-${{ hashFiles('**/dependencies') }}
+          restore-keys: |
+            apt-${{ runner.os }}-
+
+      - name: Cache kernel debs
+        uses: actions/cache@v4
+        with:
+          path: xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}
+          key: kernel-${{ env.KERNEL_REPO }}-${{ env.KERNEL_VERSION }}-${{ github.sha }}
+          restore-keys: |
+            kernel-${{ env.KERNEL_REPO }}-${{ env.KERNEL_VERSION }}-
+
       - name: Install build tools
         run: |
           echo "[$(date +'%Y-%m-%d %H:%M:%S')] Checking and installing build tool: ${{ env.BOOTSTRAP_TOOL }}"
-          
+
           if [ "${{ env.BOOTSTRAP_TOOL }}" = "mmdebstrap" ]; then
             if ! command -v mmdebstrap &> /dev/null; then
-              echo "[$(date +'%Y-%m-%d %H:%M:%S')]   Installing mmdebstrap and dependencies..."
+              echo "[$(date +'%Y-%m-%d %H:%M:%S')] Installing mmdebstrap and dependencies..."
               sudo apt-get update
               sudo apt-get install -y mmdebstrap debian-archive-keyring
-              echo "[$(date +'%Y-%m-%d %H:%M:%S')]   mmdebstrap installation completed"
             else
-              echo "[$(date +'%Y-%m-%d %H:%M:%S')]   mmdebstrap already installed, skipping"
+              echo "[$(date +'%Y-%m-%d %H:%M:%S')] mmdebstrap already installed, skipping"
             fi
           else
             if ! command -v debootstrap &> /dev/null; then
-              echo "[$(date +'%Y-%m-%d %H:%M:%S')]   Installing debootstrap..."
+              echo "[$(date +'%Y-%m-%d %H:%M:%S')] Installing debootstrap..."
               sudo apt-get update
               sudo apt-get install -y debootstrap
-              echo "[$(date +'%Y-%m-%d %H:%M:%S')]   debootstrap installation completed"
             else
-              echo "[$(date +'%Y-%m-%d %H:%M:%S')]   debootstrap already installed, skipping"
+              echo "[$(date +'%Y-%m-%d %H:%M:%S')] debootstrap already installed, skipping"
             fi
           fi
-          
-          # Install Kali keyring if building Kali
+
           if [[ "${{ env.SYSTEM_TYPE }}" == kali-* ]]; then
-            echo "[$(date +'%Y-%m-%d %H:%M:%S')]   Installing kali-archive-keyring..."
+            echo "[$(date +'%Y-%m-%d %H:%M:%S')] Installing kali-archive-keyring..."
             wget -q -O- https://archive.kali.org/archive-key.asc | sudo gpg --dearmor -o /usr/share/keyrings/kali-archive-keyring.gpg
-            echo "[$(date +'%Y-%m-%d %H:%M:%S')]   kali-archive-keyring installed"
+            echo "[$(date +'%Y-%m-%d %H:%M:%S')] kali-archive-keyring installed"
           fi
 
-      - name: Download kernel packages and boot.img (parallel)
+      - name: Download kernel packages and boot.img (parallel with retry)
         run: |
           mkdir -p xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}
 
+          # Helper function to download with retry
+          download_with_retry() {
+            local url="$1"
+            local output="$2"
+            local max_attempts=3
+            local attempt=1
+            while [ $attempt -le $max_attempts ]; do
+              echo "Download attempt $attempt: $url -> $output"
+              if curl -sL -o "$output" "$url"; then
+                echo "Download successful"
+                return 0
+              fi
+              echo "Download failed, retrying in 5s..."
+              sleep 5
+              attempt=$((attempt+1))
+            done
+            echo "Error: Failed to download $url after $max_attempts attempts"
+            return 1
+          }
+
           echo "Downloading kernel packages and boot.img (version: ${{ env.KERNEL_VERSION }})..."
 
-          curl -sL -o xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}/linux-image-xiaomi-raphael.deb \
-            "https://github.com/${{ env.KERNEL_REPO }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/linux-image-xiaomi-raphael.deb" &
+          download_with_retry "https://github.com/${{ env.KERNEL_REPO }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/linux-image-xiaomi-raphael.deb" \
+            "xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}/linux-image-xiaomi-raphael.deb" &
           PID1=$!
 
-          curl -sL -o xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}/linux-headers-xiaomi-raphael.deb \
-            "https://github.com/${{ env.KERNEL_REPO }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/linux-headers-xiaomi-raphael.deb" &
+          download_with_retry "https://github.com/${{ env.KERNEL_REPO }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/linux-headers-xiaomi-raphael.deb" \
+            "xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}/linux-headers-xiaomi-raphael.deb" &
           PID2=$!
 
-          curl -sL -o xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}/firmware-xiaomi-raphael.deb \
-            "https://github.com/${{ env.KERNEL_REPO }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/firmware-xiaomi-raphael.deb" &
+          download_with_retry "https://github.com/${{ env.KERNEL_REPO }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/firmware-xiaomi-raphael.deb" \
+            "xiaomi-raphael-debs_${{ env.KERNEL_VERSION }}/firmware-xiaomi-raphael.deb" &
           PID3=$!
 
-          curl -sL -o xiaomi-k20pro-boot.img \
-            "https://github.com/GengWei1997/kernel-deb/releases/download/v1.0.0/xiaomi-k20pro-boot.img" &
+          download_with_retry "https://github.com/GengWei1997/kernel-deb/releases/download/v1.0.0/xiaomi-k20pro-boot.img" \
+            "xiaomi-k20pro-boot.img" &
           PID4=$!
 
           if [[ "${{ env.SYSTEM_TYPE }}" == *"phosh"* || "${{ env.SYSTEM_TYPE }}" == *"gnome"* ]]; then
-            curl -sL -o alsa-xiaomi-raphael.deb \
-              "https://github.com/${{ env.KERNEL_REPO }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/alsa-xiaomi-raphael.deb" &
+            download_with_retry "https://github.com/${{ env.KERNEL_REPO }}/releases/download/kernel-v${{ env.KERNEL_VERSION }}/alsa-xiaomi-raphael.deb" \
+              "alsa-xiaomi-raphael.deb" &
             PID5=$!
           fi
 
@@ -298,24 +324,25 @@ jobs:
 
           chmod +x build.sh
 
-          sudo BOOTSTRAP_TOOL="${{ env.BOOTSTRAP_TOOL }}" DEBIAN_VERSION="${{ env.DEBIAN_VERSION }}" UBUNTU_VERSION="${{ env.UBUNTU_VERSION }}" ./build.sh "${{ env.SYSTEM_TYPE }}" "${{ env.KERNEL_VERSION }}" "${{ env.DESKTOP_ENV }}" "${{ env.DEBIAN_VERSION || env.UBUNTU_VERSION }}"
+          sudo BOOTSTRAP_TOOL="${{ env.BOOTSTRAP_TOOL }}" \
+               DEBIAN_VERSION="${{ env.DEBIAN_VERSION }}" \
+               UBUNTU_VERSION="${{ env.UBUNTU_VERSION }}" \
+               ./build.sh "${{ env.SYSTEM_TYPE }}" "${{ env.KERNEL_VERSION }}" "${{ env.DESKTOP_ENV }}" "${{ env.DEBIAN_VERSION || env.UBUNTU_VERSION }}"
 
       - name: Generate artifact filenames and checksums
         id: artifacts
         run: |
-          # Build artifact identifier
           OS_VER="${{ env.DEBIAN_VERSION || env.UBUNTU_VERSION }}"
-          FILENAME="rootfs-${{ env.SYSTEM_TYPE }}-${{ env.KERNEL_VERSION }}-${OS_VER}"
+          BUILD_DATE_SHORT=$(date +'%Y%m%d')
+          FILENAME="rootfs-${{ env.SYSTEM_TYPE }}-${{ env.KERNEL_VERSION }}-${OS_VER}-${BUILD_DATE_SHORT}"
           [[ "${{ env.SYSTEM_TYPE }}" == *"phosh"* ]] && FILENAME="${FILENAME}-${{ env.DESKTOP_ENV }}"
-          
+
           echo "filename=${FILENAME}" >> $GITHUB_OUTPUT
           echo "artifact_name=${FILENAME}" >> $GITHUB_OUTPUT
-          
-          # Generate checksum file
+
           sha256sum rootfs.img xiaomi-k20pro-boot.img > ${FILENAME}.sha256
           cat ${FILENAME}.sha256
-          
-          # Record file size
+
           ROOTFS_SIZE=$(stat -c%s rootfs.img)
           echo "rootfs_size=${ROOTFS_SIZE}" >> $GITHUB_OUTPUT
 
@@ -362,14 +389,13 @@ jobs:
           TIMESTAMP=$(TZ='Asia/Shanghai' date +'%Y-%m-%d %H:%M:%S')
           RUN_DATE=$(date +'%Y%m%d')
           BUILD_MODE="${{ needs.generate-matrix.outputs.build_mode }}"
-          
+          TAG_MODE="${{ github.event.inputs.release_tag_mode }}"
+
           if [ "$BUILD_MODE" = "single" ]; then
-            # Single build: use detailed tag
             SYS_TYPE="${{ needs.generate-matrix.outputs.single_system_type }}"
             KERN_VER="${{ needs.generate-matrix.outputs.single_kernel_version }}"
             OS_VER="${{ needs.generate-matrix.outputs.single_os_version }}"
-            
-            # Determine OS name
+
             if [[ "$SYS_TYPE" == kali-* ]]; then
               OS_NAME="Kali"
             elif [[ "$SYS_TYPE" == debian-* ]]; then
@@ -377,15 +403,23 @@ jobs:
             else
               OS_NAME="Ubuntu"
             fi
-            
-            TAG="${SYS_TYPE}-v${KERN_VER}-${OS_VER}-${RUN_DATE}"
+
+            if [ "$TAG_MODE" = "latest" ]; then
+              TAG="latest"
+            else
+              TAG="${SYS_TYPE}-v${KERN_VER}-${OS_VER}-${RUN_DATE}"
+            fi
             RELEASE_TITLE="${OS_NAME} ${SYS_TYPE#*-} image v${KERN_VER} (${OS_VER}) ${RUN_DATE}"
           else
-            # Batch build: use unified tag
-            TAG="build-${RUN_DATE}-${GITHUB_RUN_ID}"
+            # parallel mode
+            if [ "$TAG_MODE" = "latest" ]; then
+              TAG="latest"
+            else
+              TAG="build-${RUN_DATE}-${GITHUB_RUN_ID}"
+            fi
             RELEASE_TITLE="Xiaomi Raphael Image Build ${RUN_DATE}"
           fi
-          
+
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
           echo "name=${RELEASE_TITLE}" >> $GITHUB_OUTPUT
           echo "timestamp=${TIMESTAMP}" >> $GITHUB_OUTPUT
@@ -396,83 +430,63 @@ jobs:
           TIMESTAMP="${{ steps.release-info.outputs.timestamp }}"
           ARTIFACTS_DIR="artifacts"
           RELEASE_DIR="release-files"
-          
-          # Create unified release directory
+
           mkdir -p "${RELEASE_DIR}"
-          
-          # Initialize arrays
+
           LARGE_FILES=""
           FILE_LIST=""
-          
-          # GitHub Release single file size limit: 2GB = 2147483648 bytes
+          SHA256_LIST=""
           SIZE_LIMIT=2147483648
-          
-          # Iterate over all artifacts
+
           for artifact_dir in ${ARTIFACTS_DIR}/rootfs-*/; do
             [ -d "$artifact_dir" ] || continue
-            
+
             for file in "${artifact_dir}"*.7z; do
               [ -f "$file" ] || continue
-              
+
               filename=$(basename "$file")
               filesize=$(stat -c%s "$file")
-              
-              # Parse filename information
-              # Format: rootfs-{system_type}-{kernel_version}-{os_version}[-{desktop_env}].7z
+
               IFS='-' read -ra PARTS <<< "${filename%.7z}"
               SYSTEM_TYPE="${PARTS[1]}"
               KERNEL_VER="${PARTS[2]}"
               OS_VER="${PARTS[3]}"
-              
-              # Get checksum
+
               shafile="${file%.7z}.sha256"
               if [ -f "$shafile" ]; then
                 SHA256=$(awk 'NR==1 {print $1}' "$shafile")
               else
                 SHA256=$(sha256sum "$file" | awk '{print $1}')
               fi
-              
-              # Build file info line
+
               FILE_INFO="| ${filename} | ${SYSTEM_TYPE} | ${KERNEL_VER} | ${OS_VER} |"
-              
+
               if [ "$filesize" -gt "$SIZE_LIMIT" ]; then
-                # Large file: not included in Release, kept in Artifacts
-                LARGE_FILES="${LARGE_FILES}
-          - ${filename} (${filesize} bytes)"
-                FILE_LIST="${FILE_LIST}
-          - ⚠️ **${filename}** (File too large, download from Artifacts)"
+                LARGE_FILES="${LARGE_FILES}\n- ${filename} (${filesize} bytes)"
+                FILE_LIST="${FILE_LIST}\n- ⚠️ **${filename}** (File too large, download from Artifacts)"
               else
-                # Small file: include in Release, create symbolic link to unified directory
                 ln -sf "$(realpath "$file")" "${RELEASE_DIR}/${filename}"
-                FILE_LIST="${FILE_LIST}
-          - ✅ **${filename}**"
+                FILE_LIST="${FILE_LIST}\n- ✅ **${filename}**"
               fi
-              
-              # Collect checksum information
-              SHA256_LIST="${SHA256_LIST}
-          ${filename}: ${SHA256}"
+
+              SHA256_LIST="${SHA256_LIST}\n${filename}: ${SHA256}"
             done
           done
-          
-          # List files to upload
+
           echo "Files to upload to Release:"
           ls -la ${RELEASE_DIR}/
-          
-          {
-            echo "large_files<<EOF"
-            echo "$LARGE_FILES"
-            echo "EOF"
-          } >> $GITHUB_OUTPUT
-          {
-            echo "file_list<<EOF"
-            echo "$FILE_LIST"
-            echo "EOF"
-          } >> $GITHUB_OUTPUT
-          {
-            echo "sha256_list<<EOF"
-            echo "$SHA256_LIST"
-            echo "EOF"
-          } >> $GITHUB_OUTPUT
+
+          echo "large_files<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$LARGE_FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          echo "file_list<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$FILE_LIST" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          echo "sha256_list<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$SHA256_LIST" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create Release description
         id: description
@@ -481,7 +495,7 @@ jobs:
           FILE_LIST="${{ steps.classify.outputs.file_list }}"
           LARGE_FILES="${{ steps.classify.outputs.large_files }}"
           SHA256_LIST="${{ steps.classify.outputs.sha256_list }}"
-          
+
           {
             echo "body<<EOF"
             echo "## Xiaomi Raphael (K20 Pro) System Image Collection"
