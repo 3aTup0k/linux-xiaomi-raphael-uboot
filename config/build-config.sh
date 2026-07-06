@@ -10,7 +10,6 @@ SYSTEM_TYPES="
   ubuntu-phosh
   ubuntu-xfce
   ubuntu-kde
-  kali-server
   kali-gnome
   kali-phosh
   kali-xfce
@@ -134,7 +133,13 @@ get_packages() {
   local system_type="$1"
   local desktop_env="$2"
 
-  base_packages="bash-completion sudo apt-utils ssh openssh-server nano network-manager systemd-boot initramfs-tools chrony curl wget locales tzdata dnsmasq iptables iproute2 zram-tools"
+  base_packages="bash-completion sudo apt-utils ssh openssh-server nano network-manager systemd-boot initramfs-tools chrony curl wget locales tzdata dnsmasq nftables iptables iproute2 zram-tools"
+  
+  if [[ "$system_type" == *"debian-"* ]]; then
+    base_packages="$base_packages fonts-wqy-microhei"
+  elif [[ "$system_type" == *"ubuntu-"* ]]; then
+    base_packages="$base_packages language-pack-zh-hans"
+  fi
 
   # Kali-specific handling
   if [[ "$system_type" == *"kali-"* ]]; then
