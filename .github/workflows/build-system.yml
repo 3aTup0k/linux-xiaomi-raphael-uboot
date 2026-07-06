@@ -14,7 +14,7 @@ on:
       system_types:
         description: 'System types (comma-separated, e.g.: debian-server,debian-gnome,kali-phosh)'
         required: false
-        default: 'kali-kde,kali-xfce,kali-gnome,kali-phosh,debian-server,debian-gnome,debian-phosh,ubuntu-server,ubuntu-gnome,ubuntu-phosh,kali-server,kali-gnome,kali-phosh'
+          default: 'kali-kde,kali-xfce,kali-gnome,kali-phosh,debian-server,debian-gnome,debian-phosh,ubuntu-server,ubuntu-gnome,ubuntu-phosh,kali-gnome,kali-phosh'
         type: string
       kernel_versions:
         description: 'Kernel versions (comma-separated, e.g.: 6.18,7.0)'
